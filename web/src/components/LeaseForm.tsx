@@ -24,8 +24,11 @@ const emptyTerms = {
   taxed_incentives: 0,
   untaxed_incentives: 0,
   acquisition_fee: 0,
-  dealer_fees: 0,
-  government_fees: 0,
+  // Fixed CA fees — same regardless of dealer, though dealers label them differently.
+  registration_fee: 536,
+  doc_fee: 85,
+  tire_fee: 7,
+  electronic_filing_fee: 33,
   disposition_fee: 0,
   security_deposit: 0,
   // Sales tax is set by home address, not by deal — 9.625% is the fixed rate.
@@ -284,19 +287,35 @@ export function LeaseForm({ evs, initial, onCancel, onSaved, onEvCreated }: Prop
                 />
               </label>
               <label>
-                Dealer fees ($)
+                Registration ($)
                 <input
                   type="number"
-                  value={terms.dealer_fees}
-                  onChange={(e) => setTerm('dealer_fees', Number(e.target.value))}
+                  value={terms.registration_fee}
+                  onChange={(e) => setTerm('registration_fee', Number(e.target.value))}
                 />
               </label>
               <label>
-                Government fees ($)
+                Document processing charge ($)
                 <input
                   type="number"
-                  value={terms.government_fees}
-                  onChange={(e) => setTerm('government_fees', Number(e.target.value))}
+                  value={terms.doc_fee}
+                  onChange={(e) => setTerm('doc_fee', Number(e.target.value))}
+                />
+              </label>
+              <label>
+                California tire fee ($)
+                <input
+                  type="number"
+                  value={terms.tire_fee}
+                  onChange={(e) => setTerm('tire_fee', Number(e.target.value))}
+                />
+              </label>
+              <label>
+                Electronic registration charge ($)
+                <input
+                  type="number"
+                  value={terms.electronic_filing_fee}
+                  onChange={(e) => setTerm('electronic_filing_fee', Number(e.target.value))}
                 />
               </label>
               <label>
@@ -400,8 +419,10 @@ function extractTerms(lease: Lease): typeof emptyTerms {
     taxed_incentives: lease.taxed_incentives,
     untaxed_incentives: lease.untaxed_incentives,
     acquisition_fee: lease.acquisition_fee,
-    dealer_fees: lease.dealer_fees,
-    government_fees: lease.government_fees,
+    registration_fee: lease.registration_fee,
+    doc_fee: lease.doc_fee,
+    tire_fee: lease.tire_fee,
+    electronic_filing_fee: lease.electronic_filing_fee,
     disposition_fee: lease.disposition_fee,
     security_deposit: lease.security_deposit,
     tax_rate_percent: lease.tax_rate_percent,

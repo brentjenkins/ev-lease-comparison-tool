@@ -40,8 +40,10 @@ export interface Lease {
   untaxed_incentives: number;
 
   acquisition_fee: number;
-  dealer_fees: number;
-  government_fees: number;
+  registration_fee: number;
+  doc_fee: number;
+  tire_fee: number;
+  electronic_filing_fee: number;
   disposition_fee: number;
   security_deposit: number;
 
@@ -60,6 +62,7 @@ export interface LeaseMetrics {
   monthlyTax: number;
   paymentWithTax: number;
   dueAtSigning: number;
+  totalCustomerDown: number;
   totalTaxesPaid: number;
   totalCost: number;
   totalCostByMonth: number[];

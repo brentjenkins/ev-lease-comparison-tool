@@ -188,6 +188,10 @@ function LeaseDetail({ lease, onClose }: { lease: Lease; onClose: () => void }) 
           <span>{money(m.dueAtSigning)}</span>
         </div>
         <div>
+          <span className="label">Total customer down</span>
+          <span>{money(m.totalCustomerDown)}</span>
+        </div>
+        <div>
           <span className="label">Payment (with tax)</span>
           <span>{money(m.paymentWithTax)}/mo</span>
         </div>

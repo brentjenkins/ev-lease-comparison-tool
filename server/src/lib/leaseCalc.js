@@ -14,7 +14,7 @@ export function suggestMonthlyPayment(lease) {
     return null;
   }
 
-  const capitalizedFees = (lease.acquisition_fee || 0) + (lease.dealer_fees || 0);
+  const capitalizedFees = (lease.acquisition_fee || 0) + (lease.doc_fee || 0);
   const reductions =
     (lease.down_payment || 0) +
     (lease.trade_in_equity || 0) +
@@ -59,10 +59,16 @@ export function computeLeaseMetrics(lease) {
   const dueAtSigning =
     (lease.down_payment || 0) +
     (lease.acquisition_fee || 0) +
-    (lease.dealer_fees || 0) +
-    (lease.government_fees || 0) +
+    (lease.doc_fee || 0) +
+    (lease.registration_fee || 0) +
+    (lease.tire_fee || 0) +
+    (lease.electronic_filing_fee || 0) +
     (lease.security_deposit || 0) +
     upfrontTax;
+
+  // Cash the customer puts toward the deal at signing, distinct from other
+  // due-at-signing fees: down payment + acquisition fee + first month's payment.
+  const totalCustomerDown = round2((lease.down_payment || 0) + (lease.acquisition_fee || 0) + paymentWithTax);
 
   // total cost = down payment + taxes + monthly payments
   const totalCost = round2((lease.down_payment || 0) + totalTaxesPaid + basePayment * termMonths);
@@ -83,6 +89,7 @@ export function computeLeaseMetrics(lease) {
     monthlyTax: round2(monthlyTax),
     paymentWithTax: round2(paymentWithTax),
     dueAtSigning: round2(dueAtSigning),
+    totalCustomerDown,
     totalTaxesPaid: round2(totalTaxesPaid),
     totalCost,
     totalCostByMonth,

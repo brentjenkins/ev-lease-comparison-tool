@@ -49,8 +49,10 @@ db.exec(`
     untaxed_incentives REAL NOT NULL DEFAULT 0,
 
     acquisition_fee REAL NOT NULL DEFAULT 0,
-    dealer_fees REAL NOT NULL DEFAULT 0,
-    government_fees REAL NOT NULL DEFAULT 0,
+    registration_fee REAL NOT NULL DEFAULT 0,
+    doc_fee REAL NOT NULL DEFAULT 0,
+    tire_fee REAL NOT NULL DEFAULT 0,
+    electronic_filing_fee REAL NOT NULL DEFAULT 0,
     disposition_fee REAL NOT NULL DEFAULT 0,
     security_deposit REAL NOT NULL DEFAULT 0,
 
@@ -62,3 +64,17 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
+
+// Fee line items were split out from generic dealer_fees/government_fees into
+// specifically-named fields (dealers label the same fixed CA fees differently).
+const existingColumns = new Set(db.prepare('PRAGMA table_info(leases)').all().map((c) => c.name));
+for (const col of ['registration_fee', 'doc_fee', 'tire_fee', 'electronic_filing_fee']) {
+  if (!existingColumns.has(col)) {
+    db.exec(`ALTER TABLE leases ADD COLUMN ${col} REAL NOT NULL DEFAULT 0`);
+  }
+}
+for (const col of ['dealer_fees', 'government_fees']) {
+  if (existingColumns.has(col)) {
+    db.exec(`ALTER TABLE leases DROP COLUMN ${col}`);
+  }
+}
