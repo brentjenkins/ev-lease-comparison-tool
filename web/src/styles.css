@@ -1,0 +1,397 @@
+:root {
+  --bg: #f7f7fa;
+  --panel: #ffffff;
+  --border: #e2e4ea;
+  --text: #1c1e26;
+  --muted: #6b7080;
+  --accent: #2f6fed;
+  --accent-hover: #1f5adb;
+  --danger: #d1445a;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 64px;
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+
+.brand {
+  font-weight: 700;
+  margin-right: 24px;
+}
+
+.tab {
+  background: none;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.tab.active {
+  background: var(--accent);
+  color: white;
+}
+
+.view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+h1 {
+  font-size: 22px;
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+button:not(.link):not(.secondary):not(.tab) {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+button:not(.link):not(.secondary):not(.tab):hover {
+  background: var(--accent-hover);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+button.secondary {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+button.link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  padding: 2px 4px;
+  font-size: 13px;
+}
+
+button.link.danger,
+a.link {
+  color: var(--danger);
+}
+
+a.link {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.row-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.table-wrap {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: auto;
+}
+
+table.sortable-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+table.sortable-table th {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--muted);
+  font-weight: 600;
+  user-select: none;
+}
+
+table.sortable-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+table.sortable-table tr:last-child td {
+  border-bottom: none;
+}
+
+tr.clickable {
+  cursor: pointer;
+}
+
+tr.clickable:hover {
+  background: #f2f4fb;
+}
+
+.align-right {
+  text-align: right;
+}
+
+.empty-state {
+  padding: 40px;
+  text-align: center;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 22, 30, 0.45);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 16px;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.modal {
+  background: var(--panel);
+  border-radius: 14px;
+  padding: 24px 28px 28px;
+  width: 100%;
+  max-width: 520px;
+}
+
+.modal.wide {
+  max-width: 760px;
+}
+
+.modal h2 {
+  margin-top: 0;
+}
+
+.modal section {
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal section h3 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 0 0 10px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px 16px;
+}
+
+.form-grid .span-2 {
+  grid-column: span 2;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  background: white;
+}
+
+.checkbox-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 6px 0 14px;
+}
+
+label.checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+label.checkbox input {
+  width: auto;
+}
+
+.form-error {
+  background: #fdecef;
+  color: var(--danger);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.url-row {
+  display: flex;
+  gap: 8px;
+}
+
+.url-row input {
+  flex: 1;
+}
+
+.scrape-preview {
+  display: flex;
+  gap: 14px;
+  margin-top: 12px;
+  padding: 12px;
+  background: #f5f7fc;
+  border-radius: 10px;
+}
+
+.scrape-image {
+  width: 96px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.scrape-title {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.scrape-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.scrape-fields .muted {
+  color: var(--muted);
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 8px 0 0;
+}
+
+.detail-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 16px;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detail-header h3 {
+  margin: 0;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+  margin: 16px 0;
+}
+
+.detail-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-grid .label {
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.month-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+table.month-table {
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+table.month-table th,
+table.month-table td {
+  padding: 6px 10px;
+  border-right: 1px solid var(--border);
+  text-align: right;
+  white-space: nowrap;
+}
+
+table.month-table th {
+  background: #f5f7fc;
+  color: var(--muted);
+  font-weight: 600;
+}

@@ -1,0 +1,88 @@
+// Standard lease math (mirrors LeaseHackr calculator terminology) plus the
+// comparison metrics requested for this tool. Nothing here is persisted —
+// it's recomputed from the stored lease terms on every read so it always
+// reflects the current inputs.
+
+/**
+ * Suggests a base (pre-tax) monthly payment from a full deal breakdown.
+ * Returns null if not enough inputs are present (selling price / residual /
+ * money factor are optional — the user can just type a quoted payment instead).
+ */
+export function suggestMonthlyPayment(lease) {
+  const { msrp, selling_price, residual_percent, money_factor, term_months } = lease;
+  if (!selling_price || !residual_percent || money_factor == null || !term_months) {
+    return null;
+  }
+
+  const capitalizedFees = (lease.acquisition_fee || 0) + (lease.dealer_fees || 0);
+  const reductions =
+    (lease.down_payment || 0) +
+    (lease.trade_in_equity || 0) +
+    (lease.taxed_incentives || 0) +
+    (lease.untaxed_incentives || 0);
+
+  const adjustedCapCost = selling_price + capitalizedFees - reductions;
+  const residualValue = (msrp || 0) * (residual_percent / 100);
+
+  const depreciation = (adjustedCapCost - residualValue) / term_months;
+  const rentCharge = (adjustedCapCost + residualValue) * money_factor;
+
+  return round2(depreciation + rentCharge);
+}
+
+/**
+ * Computes the comparison metrics for a lease record (as returned by the DB,
+ * snake_case fields). basePayment is the pre-tax monthly payment to use —
+ * either the stored monthly_payment (a manual/dealer-quoted figure) or the
+ * suggested figure, decided by the caller.
+ */
+export function computeLeaseMetrics(lease) {
+  const termMonths = lease.term_months || 0;
+  const basePayment = lease.monthly_payment || 0;
+  const taxRate = (lease.tax_rate_percent || 0) / 100;
+  const isMonthlyTax = lease.tax_method !== 'upfront';
+
+  const monthlyTax = isMonthlyTax ? basePayment * taxRate : 0;
+  const paymentWithTax = basePayment + monthlyTax;
+
+  const upfrontTax = isMonthlyTax ? 0 : (lease.selling_price || 0) * taxRate;
+  const totalTaxesPaid = isMonthlyTax ? monthlyTax * termMonths : upfrontTax;
+
+  const dueAtSigning =
+    (lease.down_payment || 0) +
+    (lease.acquisition_fee || 0) +
+    (lease.dealer_fees || 0) +
+    (lease.government_fees || 0) +
+    (lease.security_deposit || 0) +
+    upfrontTax;
+
+  // total cost = down payment + taxes + monthly payments
+  const totalCost = round2((lease.down_payment || 0) + totalTaxesPaid + basePayment * termMonths);
+
+  const totalCostByMonth = [];
+  for (let i = 1; i <= termMonths; i++) {
+    totalCostByMonth.push(round2((lease.down_payment || 0) + i * paymentWithTax));
+  }
+
+  const effectiveMonthlyCost = termMonths ? round2(totalCost / termMonths) : null;
+  const yearsToMsrp =
+    effectiveMonthlyCost && lease.msrp
+      ? round2(lease.msrp / (effectiveMonthlyCost * 12))
+      : null;
+
+  return {
+    basePayment: round2(basePayment),
+    monthlyTax: round2(monthlyTax),
+    paymentWithTax: round2(paymentWithTax),
+    dueAtSigning: round2(dueAtSigning),
+    totalTaxesPaid: round2(totalTaxesPaid),
+    totalCost,
+    totalCostByMonth,
+    effectiveMonthlyCost,
+    yearsToMsrp,
+  };
+}
+
+function round2(n) {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
