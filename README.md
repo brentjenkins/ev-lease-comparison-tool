@@ -34,8 +34,9 @@ Serves everything from `http://localhost:3001`.
 - Adding a lease starts by pasting a link to a dealer/marketplace listing page and clicking **Scrape** — this
   fetches the page server-side and best-effort extracts a title, image, price/MSRP, and year/make/model/trim
   guess (from JSON-LD structured data if present, else Open Graph tags / page text). Results vary a lot by
-  site; everything is editable before saving. Lease terms (money factor, residual %, fees, tax) are not on
-  listing pages and are entered manually.
-- "Suggest payment" in the lease form computes a payment from selling price / residual % / money factor /
+  site; everything is editable before saving. Lease terms (money factor, residual value, fees, tax) are not
+  on listing pages and are entered manually. Residual is entered as a dollar amount (what dealers actually
+  post), and residual % of MSRP is shown as a computed hint, not entered directly.
+- "Suggest payment" in the lease form computes a payment from selling price / residual value / money factor /
   fees, mirroring the standard depreciation + rent-charge lease formula (as used by LeaseHackr's calculator).
   You can also just type in a dealer-quoted payment directly and skip those fields.

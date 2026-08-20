@@ -40,7 +40,7 @@ db.exec(`
 
     term_months INTEGER NOT NULL DEFAULT 36,
     annual_mileage INTEGER,
-    residual_percent REAL,
+    residual_value REAL,
     money_factor REAL,
 
     down_payment REAL NOT NULL DEFAULT 0,

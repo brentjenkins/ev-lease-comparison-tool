@@ -9,8 +9,8 @@
  * money factor are optional — the user can just type a quoted payment instead).
  */
 export function suggestMonthlyPayment(lease) {
-  const { msrp, selling_price, residual_percent, money_factor, term_months } = lease;
-  if (!selling_price || !residual_percent || money_factor == null || !term_months) {
+  const { selling_price, residual_value, money_factor, term_months } = lease;
+  if (!selling_price || !residual_value || money_factor == null || !term_months) {
     return null;
   }
 
@@ -22,12 +22,20 @@ export function suggestMonthlyPayment(lease) {
     (lease.untaxed_incentives || 0);
 
   const adjustedCapCost = selling_price + capitalizedFees - reductions;
-  const residualValue = (msrp || 0) * (residual_percent / 100);
 
-  const depreciation = (adjustedCapCost - residualValue) / term_months;
-  const rentCharge = (adjustedCapCost + residualValue) * money_factor;
+  const depreciation = (adjustedCapCost - residual_value) / term_months;
+  const rentCharge = (adjustedCapCost + residual_value) * money_factor;
 
   return round2(depreciation + rentCharge);
+}
+
+/**
+ * Residual % is derived, not entered — dealers post the residual as a dollar
+ * figure for the specific deal, not a percentage of MSRP.
+ */
+export function residualPercent(lease) {
+  if (!lease.residual_value || !lease.msrp) return null;
+  return round2((lease.residual_value / lease.msrp) * 100);
 }
 
 /**
@@ -80,6 +88,7 @@ export function computeLeaseMetrics(lease) {
     totalCostByMonth,
     effectiveMonthlyCost,
     yearsToMsrp,
+    residualPercent: residualPercent(lease),
   };
 }
 

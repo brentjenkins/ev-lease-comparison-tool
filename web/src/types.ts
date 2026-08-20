@@ -31,7 +31,7 @@ export interface Lease {
 
   term_months: number;
   annual_mileage: number | null;
-  residual_percent: number | null;
+  residual_value: number | null;
   money_factor: number | null;
 
   down_payment: number;
@@ -65,6 +65,7 @@ export interface LeaseMetrics {
   totalCostByMonth: number[];
   effectiveMonthlyCost: number | null;
   yearsToMsrp: number | null;
+  residualPercent: number | null;
 }
 
 export type LeaseInput = Omit<Lease, 'id' | 'created_at' | 'ev' | 'metrics'>;

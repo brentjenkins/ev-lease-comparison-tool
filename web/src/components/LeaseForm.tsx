@@ -17,7 +17,7 @@ const emptyTerms = {
   selling_price: null as number | null,
   term_months: 36,
   annual_mileage: 10000 as number | null,
-  residual_percent: null as number | null,
+  residual_value: null as number | null,
   money_factor: null as number | null,
   down_payment: 0,
   trade_in_equity: 0,
@@ -62,6 +62,11 @@ export function LeaseForm({ evs, initial, onCancel, onSaved, onEvCreated }: Prop
       ) || null
     );
   }, [guess, evs]);
+
+  const residualPercent = useMemo(() => {
+    if (!terms.residual_value || !terms.msrp) return null;
+    return (terms.residual_value / terms.msrp) * 100;
+  }, [terms.residual_value, terms.msrp]);
 
   function setTerm<K extends keyof typeof emptyTerms>(key: K, value: (typeof emptyTerms)[K]) {
     setTerms((t) => ({ ...t, [key]: value }));
@@ -207,13 +212,15 @@ export function LeaseForm({ evs, initial, onCancel, onSaved, onEvCreated }: Prop
                 />
               </label>
               <label>
-                Residual (%)
+                Residual value ($)
                 <input
                   type="number"
-                  step="0.01"
-                  value={terms.residual_percent ?? ''}
-                  onChange={(e) => setTerm('residual_percent', e.target.value === '' ? null : Number(e.target.value))}
+                  value={terms.residual_value ?? ''}
+                  onChange={(e) => setTerm('residual_value', e.target.value === '' ? null : Number(e.target.value))}
                 />
+                {residualPercent != null && (
+                  <span className="computed-hint">= {residualPercent.toFixed(1)}% of MSRP</span>
+                )}
               </label>
               <label>
                 Money factor
@@ -386,7 +393,7 @@ function extractTerms(lease: Lease): typeof emptyTerms {
     selling_price: lease.selling_price,
     term_months: lease.term_months,
     annual_mileage: lease.annual_mileage,
-    residual_percent: lease.residual_percent,
+    residual_value: lease.residual_value,
     money_factor: lease.money_factor,
     down_payment: lease.down_payment,
     trade_in_equity: lease.trade_in_equity,

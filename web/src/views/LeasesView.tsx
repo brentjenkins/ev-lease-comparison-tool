@@ -177,6 +177,13 @@ function LeaseDetail({ lease, onClose }: { lease: Lease; onClose: () => void }) 
       </div>
       <div className="detail-grid">
         <div>
+          <span className="label">Residual</span>
+          <span>
+            {money(lease.residual_value)}
+            {m.residualPercent != null ? ` (${m.residualPercent.toFixed(1)}%)` : ''}
+          </span>
+        </div>
+        <div>
           <span className="label">Due at signing</span>
           <span>{money(m.dueAtSigning)}</span>
         </div>

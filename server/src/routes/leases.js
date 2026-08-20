@@ -5,7 +5,7 @@ import { computeLeaseMetrics, suggestMonthlyPayment } from '../lib/leaseCalc.js'
 export const leasesRouter = Router();
 
 const NUMERIC_FIELDS = [
-  'msrp', 'selling_price', 'residual_percent', 'money_factor',
+  'msrp', 'selling_price', 'residual_value', 'money_factor',
   'down_payment', 'trade_in_equity', 'taxed_incentives', 'untaxed_incentives',
   'acquisition_fee', 'dealer_fees', 'government_fees', 'disposition_fee', 'security_deposit',
   'tax_rate_percent', 'monthly_payment',
@@ -49,13 +49,13 @@ leasesRouter.post('/', (req, res) => {
   const info = db.prepare(`
     INSERT INTO leases (
       ev_id, source_url, listing_title, image_url, notes,
-      msrp, selling_price, term_months, annual_mileage, residual_percent, money_factor,
+      msrp, selling_price, term_months, annual_mileage, residual_value, money_factor,
       down_payment, trade_in_equity, taxed_incentives, untaxed_incentives,
       acquisition_fee, dealer_fees, government_fees, disposition_fee, security_deposit,
       tax_rate_percent, tax_method, monthly_payment
     ) VALUES (
       @ev_id, @source_url, @listing_title, @image_url, @notes,
-      @msrp, @selling_price, @term_months, @annual_mileage, @residual_percent, @money_factor,
+      @msrp, @selling_price, @term_months, @annual_mileage, @residual_value, @money_factor,
       @down_payment, @trade_in_equity, @taxed_incentives, @untaxed_incentives,
       @acquisition_fee, @dealer_fees, @government_fees, @disposition_fee, @security_deposit,
       @tax_rate_percent, @tax_method, @monthly_payment
@@ -76,7 +76,7 @@ leasesRouter.put('/:id', (req, res) => {
     UPDATE leases SET
       ev_id=@ev_id, source_url=@source_url, listing_title=@listing_title, image_url=@image_url, notes=@notes,
       msrp=@msrp, selling_price=@selling_price, term_months=@term_months, annual_mileage=@annual_mileage,
-      residual_percent=@residual_percent, money_factor=@money_factor,
+      residual_value=@residual_value, money_factor=@money_factor,
       down_payment=@down_payment, trade_in_equity=@trade_in_equity, taxed_incentives=@taxed_incentives, untaxed_incentives=@untaxed_incentives,
       acquisition_fee=@acquisition_fee, dealer_fees=@dealer_fees, government_fees=@government_fees, disposition_fee=@disposition_fee, security_deposit=@security_deposit,
       tax_rate_percent=@tax_rate_percent, tax_method=@tax_method, monthly_payment=@monthly_payment
@@ -101,7 +101,7 @@ function normalize(body) {
     tax_method: body.tax_method === 'upfront' ? 'upfront' : 'monthly',
   };
   for (const f of NUMERIC_FIELDS) {
-    out[f] = body[f] != null && body[f] !== '' ? Number(body[f]) : (f === 'residual_percent' || f === 'money_factor' || f === 'selling_price' ? null : 0);
+    out[f] = body[f] != null && body[f] !== '' ? Number(body[f]) : (f === 'residual_value' || f === 'money_factor' || f === 'selling_price' ? null : 0);
   }
   for (const f of INT_FIELDS) {
     out[f] = body[f] != null && body[f] !== '' ? parseInt(body[f], 10) : (f === 'term_months' ? 36 : null);
