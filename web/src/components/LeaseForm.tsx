@@ -28,7 +28,8 @@ const emptyTerms = {
   government_fees: 0,
   disposition_fee: 0,
   security_deposit: 0,
-  tax_rate_percent: 0,
+  // Sales tax is set by home address, not by deal — 9.625% is the fixed rate.
+  tax_rate_percent: 9.625,
   tax_method: 'monthly' as TaxMethod,
   monthly_payment: 0,
   notes: '',
