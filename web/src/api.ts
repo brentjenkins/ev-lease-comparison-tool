@@ -1,4 +1,4 @@
-import type { EV, EVInput, Lease, LeaseInput, ScrapeGuess } from './types';
+import type { EV, EVInput, Lease, LeaseInput, Make, MakeInput, ScrapeGuess } from './types';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -32,4 +32,10 @@ export const api = {
     }),
 
   scrape: (url: string) => request<ScrapeGuess>('/scrape', { method: 'POST', body: JSON.stringify({ url }) }),
+
+  listMakes: () => request<Make[]>('/makes'),
+  createMake: (input: MakeInput) => request<Make>('/makes', { method: 'POST', body: JSON.stringify(input) }),
+  updateMake: (id: number, input: Partial<MakeInput>) =>
+    request<Make>(`/makes/${id}`, { method: 'PUT', body: JSON.stringify(input) }),
+  deleteMake: (id: number) => request<void>(`/makes/${id}`, { method: 'DELETE' }),
 };

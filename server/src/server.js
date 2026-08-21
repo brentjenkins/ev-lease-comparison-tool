@@ -6,6 +6,7 @@ import './db.js';
 import { evsRouter } from './routes/evs.js';
 import { leasesRouter } from './routes/leases.js';
 import { scrapeRouter } from './routes/scrape.js';
+import { makesRouter } from './routes/makes.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3001;
@@ -16,6 +17,7 @@ app.use(express.json());
 app.use('/api/evs', evsRouter);
 app.use('/api/leases', leasesRouter);
 app.use('/api/scrape', scrapeRouter);
+app.use('/api/makes', makesRouter);
 
 // In production, serve the built frontend from web/dist on the same port.
 const webDist = join(__dirname, '..', '..', 'web', 'dist');

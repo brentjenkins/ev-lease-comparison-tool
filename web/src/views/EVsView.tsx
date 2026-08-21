@@ -6,6 +6,7 @@ import { EVForm } from '../components/EVForm';
 
 const YES = '✓';
 const NO = '';
+const money = (n: number | null) => (n == null ? '—' : `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`);
 
 export function EVsView() {
   const [evs, setEvs] = useState<EV[]>([]);
@@ -54,6 +55,7 @@ export function EVsView() {
     { key: 'make', label: 'Make', accessor: (e) => e.make },
     { key: 'model', label: 'Model', accessor: (e) => e.model },
     { key: 'trim', label: 'Trim', accessor: (e) => e.trim },
+    { key: 'msrp', label: 'MSRP', accessor: (e) => e.msrp, render: (e) => money(e.msrp), align: 'right' },
     { key: 'seats', label: 'Seats', accessor: (e) => e.seats, align: 'right' },
     { key: 'range_miles', label: 'Range (mi)', accessor: (e) => e.range_miles, align: 'right' },
     { key: 'awd', label: 'AWD', accessor: (e) => (e.awd ? 1 : 0), render: (e) => (e.awd ? YES : NO) },

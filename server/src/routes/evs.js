@@ -30,8 +30,8 @@ evsRouter.post('/', (req, res) => {
   }
   const values = buildValues(body);
   const stmt = db.prepare(`
-    INSERT INTO evs (year, make, model, trim, seats, range_miles, awd, powered_liftgate, heated_seats, cooled_seats, notes)
-    VALUES (@year, @make, @model, @trim, @seats, @range_miles, @awd, @powered_liftgate, @heated_seats, @cooled_seats, @notes)
+    INSERT INTO evs (year, make, model, trim, msrp, seats, range_miles, awd, powered_liftgate, heated_seats, cooled_seats, notes)
+    VALUES (@year, @make, @model, @trim, @msrp, @seats, @range_miles, @awd, @powered_liftgate, @heated_seats, @cooled_seats, @notes)
   `);
   const info = stmt.run(values);
   const row = db.prepare('SELECT * FROM evs WHERE id = ?').get(info.lastInsertRowid);
@@ -45,7 +45,7 @@ evsRouter.put('/:id', (req, res) => {
   const merged = { ...existing, ...req.body };
   const values = buildValues(merged);
   db.prepare(`
-    UPDATE evs SET year=@year, make=@make, model=@model, trim=@trim, seats=@seats,
+    UPDATE evs SET year=@year, make=@make, model=@model, trim=@trim, msrp=@msrp, seats=@seats,
       range_miles=@range_miles, awd=@awd, powered_liftgate=@powered_liftgate,
       heated_seats=@heated_seats, cooled_seats=@cooled_seats, notes=@notes
     WHERE id=@id
@@ -66,6 +66,7 @@ function buildValues(body) {
     make: String(body.make).trim(),
     model: String(body.model).trim(),
     trim: body.trim ? String(body.trim).trim() : null,
+    msrp: body.msrp != null && body.msrp !== '' ? Number(body.msrp) : null,
     seats: body.seats != null && body.seats !== '' ? parseInt(body.seats, 10) : null,
     range_miles: body.range_miles != null && body.range_miles !== '' ? parseInt(body.range_miles, 10) : null,
     awd: body.awd ? 1 : 0,

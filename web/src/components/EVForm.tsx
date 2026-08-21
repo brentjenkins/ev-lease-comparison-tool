@@ -13,6 +13,7 @@ const empty: EVInput = {
   make: '',
   model: '',
   trim: '',
+  msrp: null,
   seats: null,
   range_miles: null,
   awd: false,
@@ -69,6 +70,14 @@ export function EVForm({ initial, onCancel, onSave, title }: Props) {
             <label>
               Trim
               <input value={form.trim ?? ''} onChange={(e) => set('trim', e.target.value)} />
+            </label>
+            <label>
+              MSRP ($)
+              <input
+                type="number"
+                value={form.msrp ?? ''}
+                onChange={(e) => set('msrp', e.target.value === '' ? null : Number(e.target.value))}
+              />
             </label>
             <label>
               Seats

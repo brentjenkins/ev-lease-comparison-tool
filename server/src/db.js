@@ -17,6 +17,7 @@ db.exec(`
     make TEXT NOT NULL,
     model TEXT NOT NULL,
     trim TEXT,
+    msrp REAL,
     seats INTEGER,
     range_miles INTEGER,
     awd INTEGER NOT NULL DEFAULT 0,
@@ -44,7 +45,6 @@ db.exec(`
     money_factor REAL,
 
     down_payment REAL NOT NULL DEFAULT 0,
-    trade_in_equity REAL NOT NULL DEFAULT 0,
     taxed_incentives REAL NOT NULL DEFAULT 0,
     untaxed_incentives REAL NOT NULL DEFAULT 0,
 
@@ -63,18 +63,55 @@ db.exec(`
 
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS makes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    acquisition_fee REAL NOT NULL DEFAULT 0,
+    disposition_fee REAL NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
 
 // Fee line items were split out from generic dealer_fees/government_fees into
 // specifically-named fields (dealers label the same fixed CA fees differently).
-const existingColumns = new Set(db.prepare('PRAGMA table_info(leases)').all().map((c) => c.name));
+const existingLeaseColumns = new Set(db.prepare('PRAGMA table_info(leases)').all().map((c) => c.name));
 for (const col of ['registration_fee', 'doc_fee', 'tire_fee', 'electronic_filing_fee']) {
-  if (!existingColumns.has(col)) {
+  if (!existingLeaseColumns.has(col)) {
     db.exec(`ALTER TABLE leases ADD COLUMN ${col} REAL NOT NULL DEFAULT 0`);
   }
 }
-for (const col of ['dealer_fees', 'government_fees']) {
-  if (existingColumns.has(col)) {
+for (const col of ['dealer_fees', 'government_fees', 'trade_in_equity']) {
+  if (existingLeaseColumns.has(col)) {
     db.exec(`ALTER TABLE leases DROP COLUMN ${col}`);
   }
 }
+
+// Manufacturer's baseline MSRP for the trim, distinct from a lease's own msrp
+// (which reflects the specific listing/build, options included).
+const existingEvColumns = new Set(db.prepare('PRAGMA table_info(evs)').all().map((c) => c.name));
+if (!existingEvColumns.has('msrp')) {
+  db.exec('ALTER TABLE evs ADD COLUMN msrp REAL');
+}
+
+// Seed the captive-finance acquisition/disposition fee schedule from LeaseHackr's
+// calculator (leasehackr.com/calculator "Select Make" dropdown, read 2026-08-21).
+// INSERT OR IGNORE so re-running this never clobbers a fee the user has since edited.
+const MAKE_FEE_SEED = [
+  ['Acura', 650, 350], ['Alfa Romeo', 595, 395], ['Aston Martin', 1195, 695], ['Audi', 895, 495],
+  ['BMW', 925, 495], ['Bentley', 1495, 500], ['Buick', 0, 495], ['Cadillac', 0, 595],
+  ['Chevrolet', 0, 395], ['Chrysler', 595, 395], ['Dodge', 595, 395], ['FIAT', 595, 395],
+  ['Ford', 695, 495], ['GMC', 0, 495], ['Genesis', 750, 400], ['Honda', 595, 350],
+  ['Hyundai', 650, 400], ['INEOS', 895, 395], ['INFINITI', 795, 395], ['Jaguar', 1075, 495],
+  ['Jeep', 1075, 395], ['Kia', 650, 400], ['Lamborghini', 1495, 750], ['Land Rover', 1075, 495],
+  ['Lexus', 895, 350], ['Lincoln', 825, 495], ['Lucid', 995, 450], ['MINI', 925, 395],
+  ['Maserati', 795, 495], ['Mazda', 750, 350], ['Mclaren', 1450, 895], ['Mercedes-Benz', 795, 595],
+  ['Mitsubishi', 595, 395], ['Nissan', 695, 395], ['Polestar', 695, 450], ['Porsche', 1095, 595],
+  ['Ram', 1095, 395], ['Rivian', 895, 495], ['Rolls-Royce', 895, 495], ['Subaru', 650, 300],
+  ['Tesla', 650, 395], ['Toyota', 750, 350], ['VinFast', 695, 395], ['Volkswagen', 695, 395],
+  ['Volvo', 995, 450],
+];
+const insertMake = db.prepare(
+  'INSERT OR IGNORE INTO makes (name, acquisition_fee, disposition_fee) VALUES (?, ?, ?)'
+);
+for (const row of MAKE_FEE_SEED) insertMake.run(...row);

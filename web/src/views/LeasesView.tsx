@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
-import type { EV, Lease } from '../types';
+import type { EV, Lease, Make } from '../types';
 import { SortableTable, type Column } from '../components/SortableTable';
 import { LeaseForm } from '../components/LeaseForm';
 import { evLabel } from '../components/EVForm';
@@ -11,6 +11,7 @@ const years = (n: number | null) => (n == null ? '—' : `${n.toFixed(1)} yr`);
 export function LeasesView() {
   const [leases, setLeases] = useState<Lease[]>([]);
   const [evs, setEvs] = useState<EV[]>([]);
+  const [makes, setMakes] = useState<Make[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -24,9 +25,10 @@ export function LeasesView() {
   async function refresh() {
     setLoading(true);
     try {
-      const [l, e] = await Promise.all([api.listLeases(), api.listEVs()]);
+      const [l, e, m] = await Promise.all([api.listLeases(), api.listEVs(), api.listMakes()]);
       setLeases(l);
       setEvs(e);
+      setMakes(m);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -50,32 +52,48 @@ export function LeasesView() {
 
   const columns: Column<Lease>[] = [
     { key: 'ev', label: 'Vehicle', accessor: (l) => (l.ev ? evLabel(l.ev) : `EV #${l.ev_id}`) },
-    { key: 'selling_price', label: 'Selling price', accessor: (l) => l.selling_price, render: (l) => money(l.selling_price), align: 'right' },
+    { key: 'msrp', label: 'MSRP', accessor: (l) => l.msrp, render: (l) => money(l.msrp), align: 'right' },
+    { key: 'selling_price', label: 'Sell price', accessor: (l) => l.selling_price, render: (l) => money(l.selling_price), align: 'right' },
     { key: 'term_months', label: 'Term', accessor: (l) => l.term_months, render: (l) => `${l.term_months} mo`, align: 'right' },
+    {
+      key: 'incentives',
+      label: 'Incentives',
+      accessor: (l) => l.taxed_incentives + l.untaxed_incentives,
+      render: (l) => money(l.taxed_incentives + l.untaxed_incentives),
+      align: 'right',
+    },
+    { key: 'down_payment', label: 'Down', accessor: (l) => l.down_payment, render: (l) => money(l.down_payment), align: 'right' },
     {
       key: 'monthly_payment',
       label: 'Payment',
-      accessor: (l) => l.metrics.paymentWithTax,
-      render: (l) => `${money(l.metrics.paymentWithTax)}/mo`,
+      accessor: (l) => l.metrics.basePayment,
+      render: (l) => `${money(l.metrics.basePayment)}/mo`,
+      align: 'right',
+    },
+    {
+      key: 'annual_mileage',
+      label: 'Miles/yr',
+      accessor: (l) => l.annual_mileage,
+      render: (l) => (l.annual_mileage == null ? '—' : l.annual_mileage.toLocaleString()),
       align: 'right',
     },
     {
       key: 'totalCost',
-      label: 'Total cost',
+      label: 'Total',
       accessor: (l) => l.metrics.totalCost,
       render: (l) => money(l.metrics.totalCost),
       align: 'right',
     },
     {
       key: 'effectiveMonthlyCost',
-      label: 'Effective $/mo',
+      label: 'Eff $/mo',
       accessor: (l) => l.metrics.effectiveMonthlyCost,
       render: (l) => money(l.metrics.effectiveMonthlyCost),
       align: 'right',
     },
     {
       key: 'yearsToMsrp',
-      label: 'Years to MSRP',
+      label: 'Yrs/MSRP',
       accessor: (l) => l.metrics.yearsToMsrp,
       render: (l) => years(l.metrics.yearsToMsrp),
       align: 'right',
@@ -141,6 +159,7 @@ export function LeasesView() {
       {showForm && (
         <LeaseForm
           evs={evs}
+          makes={makes}
           onCancel={() => setShowForm(false)}
           onSaved={() => {
             setShowForm(false);
@@ -152,6 +171,7 @@ export function LeasesView() {
       {editing && (
         <LeaseForm
           evs={evs}
+          makes={makes}
           initial={editing}
           onCancel={() => setEditing(null)}
           onSaved={() => {
@@ -194,6 +214,10 @@ function LeaseDetail({ lease, onClose }: { lease: Lease; onClose: () => void }) 
         <div>
           <span className="label">Payment (with tax)</span>
           <span>{money(m.paymentWithTax)}/mo</span>
+        </div>
+        <div>
+          <span className="label">Tax on CCR</span>
+          <span>{money(m.taxOnCcr)}</span>
         </div>
         <div>
           <span className="label">Total taxes paid</span>

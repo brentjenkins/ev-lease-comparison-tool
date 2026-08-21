@@ -17,7 +17,6 @@ export function suggestMonthlyPayment(lease) {
   const capitalizedFees = (lease.acquisition_fee || 0) + (lease.doc_fee || 0);
   const reductions =
     (lease.down_payment || 0) +
-    (lease.trade_in_equity || 0) +
     (lease.taxed_incentives || 0) +
     (lease.untaxed_incentives || 0);
 
@@ -54,7 +53,14 @@ export function computeLeaseMetrics(lease) {
   const paymentWithTax = basePayment + monthlyTax;
 
   const upfrontTax = isMonthlyTax ? 0 : (lease.selling_price || 0) * taxRate;
-  const totalTaxesPaid = isMonthlyTax ? monthlyTax * termMonths : upfrontTax;
+
+  // CA (and some other states) taxes the capitalized cost reduction — cash down
+  // plus any taxed incentives applied to reduce cap cost — upfront at signing,
+  // separately from however the recurring payment itself is taxed.
+  const capCostReduction = (lease.down_payment || 0) + (lease.taxed_incentives || 0);
+  const taxOnCcr = round2(capCostReduction * taxRate);
+
+  const totalTaxesPaid = (isMonthlyTax ? monthlyTax * termMonths : upfrontTax) + taxOnCcr;
 
   const dueAtSigning =
     (lease.down_payment || 0) +
@@ -64,6 +70,7 @@ export function computeLeaseMetrics(lease) {
     (lease.tire_fee || 0) +
     (lease.electronic_filing_fee || 0) +
     (lease.security_deposit || 0) +
+    taxOnCcr +
     upfrontTax;
 
   // Cash the customer puts toward the deal at signing, distinct from other
@@ -73,9 +80,10 @@ export function computeLeaseMetrics(lease) {
   // total cost = down payment + taxes + monthly payments
   const totalCost = round2((lease.down_payment || 0) + totalTaxesPaid + basePayment * termMonths);
 
+  const upfrontCash = (lease.down_payment || 0) + taxOnCcr + upfrontTax;
   const totalCostByMonth = [];
   for (let i = 1; i <= termMonths; i++) {
-    totalCostByMonth.push(round2((lease.down_payment || 0) + i * paymentWithTax));
+    totalCostByMonth.push(round2(upfrontCash + i * paymentWithTax));
   }
 
   const effectiveMonthlyCost = termMonths ? round2(totalCost / termMonths) : null;
@@ -90,6 +98,7 @@ export function computeLeaseMetrics(lease) {
     paymentWithTax: round2(paymentWithTax),
     dueAtSigning: round2(dueAtSigning),
     totalCustomerDown,
+    taxOnCcr,
     totalTaxesPaid: round2(totalTaxesPaid),
     totalCost,
     totalCostByMonth,

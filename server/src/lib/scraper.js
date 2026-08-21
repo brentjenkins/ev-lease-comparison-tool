@@ -17,6 +17,27 @@ const PRICE_RE = /\$\s?[\d,]{4,7}(?:\.\d{2})?/;
 const MSRP_LABEL_RE = /MSRP[^$]{0,20}(\$\s?[\d,]{4,7})/i;
 const YEAR_RE = /\b(19|20)\d{2}\b/;
 
+// Lease terms are frequently in an ad's fine-print disclaimer (dealer.com/DealerOn-style
+// specials pages commonly read like: "MSRP $42,145 - $14,079 due at lease signing including
+// $184 first monthly payment, $5,995 customer cash down, $650 acquisition fee, $7,250 Lease
+// Cash... Option to purchase at lease end $26,129.90 ... responsible for $.20/mile over
+// 7,500 miles/year"). These patterns pull the real deal terms out of that prose so the form
+// isn't left entirely to manual entry.
+const FINE_PRINT_PATTERNS = {
+  dueAtSigning: /\$\s?([\d,]{3,7})\s*due at (?:lease )?signing/i,
+  firstMonthPayment: /\$\s?([\d,]{2,5})(?:\.\d{2})?\s*first month/i,
+  monthlyPayment: /\$\s?([\d,]{2,5})(?:\.\d{2})?\s*(?:\/\s?mo\.?|per month|\/month|a month)\b/i,
+  downPayment: /\$\s?([\d,]{2,7})\s*\(?(?:customer cash down|cap(?:italized)? cost reduction|down payment)/i,
+  acquisitionFee: /\$\s?([\d,]{2,5})\s*acquisition fee/i,
+  incentive: /\$\s?([\d,]{3,7})\s*(?:[A-Za-z.]+\s){0,4}?(?:lease cash|rebate|incentive|bonus cash)/i,
+  annualMileage: /([\d,]{3,6})\s*miles?\s*\/?\s*(?:per\s*)?year/i,
+  termMonths: /\b(\d{2,3})[\s-]?month(?:s)?\b(?!\s*payment)/i,
+  residualPurchaseOption: /purchase(?:\s+option)? at lease end[^\$]{0,10}\$\s?([\d,]+(?:\.\d{2})?)/i,
+  residualPercent: /residual[^\d%]{0,20}(\d{2,3})\s?%/i,
+  moneyFactor: /money factor[^\d]{0,15}(0?\.\d{3,6})/i,
+  noSecurityDeposit: /no security deposit/i,
+};
+
 export async function scrapeListing(url) {
   const res = await fetch(url, {
     headers: { 'User-Agent': UA, Accept: 'text/html' },
@@ -38,6 +59,17 @@ export async function scrapeListing(url) {
     make: null,
     model: null,
     trim: null,
+    // Deal terms pulled from fine print, when present — all best-effort.
+    monthly_payment: null,
+    down_payment: null,
+    acquisition_fee: null,
+    incentive: null,
+    annual_mileage: null,
+    term_months: null,
+    residual_value: null,
+    money_factor: null,
+    security_deposit: null,
+    due_at_signing: null,
   };
 
   // 1. JSON-LD structured data (schema.org Vehicle / Product / Car)
@@ -80,7 +112,10 @@ export async function scrapeListing(url) {
     if (priceMatch) guess.price = toNumber(priceMatch[0]);
   }
 
-  // 4. Heuristic year/make/model/trim split from the title
+  // 4. Fine-print deal terms (down payment, payment, fees, mileage, term, residual, etc.)
+  extractFinePrintTerms(bodyText, guess);
+
+  // 5. Heuristic year/make/model/trim split from the title
   if (guess.listing_title) {
     const parsedTitle = parseVehicleTitle(guess.listing_title);
     guess.year = guess.year || parsedTitle.year;
@@ -92,6 +127,54 @@ export async function scrapeListing(url) {
   if (guess.year) guess.year = parseInt(String(guess.year).match(YEAR_RE)?.[0] || guess.year, 10) || null;
 
   return guess;
+}
+
+function extractFinePrintTerms(bodyText, guess) {
+  const dueAtSigningMatch = bodyText.match(FINE_PRINT_PATTERNS.dueAtSigning);
+  if (dueAtSigningMatch) guess.due_at_signing = toNumber(dueAtSigningMatch[1]);
+
+  const firstMonthMatch = bodyText.match(FINE_PRINT_PATTERNS.firstMonthPayment);
+  if (firstMonthMatch) guess.monthly_payment = toNumber(firstMonthMatch[1]);
+  if (!guess.monthly_payment) {
+    const monthlyMatch = bodyText.match(FINE_PRINT_PATTERNS.monthlyPayment);
+    if (monthlyMatch) guess.monthly_payment = toNumber(monthlyMatch[1]);
+  }
+
+  const downMatch = bodyText.match(FINE_PRINT_PATTERNS.downPayment);
+  if (downMatch) guess.down_payment = toNumber(downMatch[1]);
+
+  const acqMatch = bodyText.match(FINE_PRINT_PATTERNS.acquisitionFee);
+  if (acqMatch) guess.acquisition_fee = toNumber(acqMatch[1]);
+
+  const incentiveMatch = bodyText.match(FINE_PRINT_PATTERNS.incentive);
+  if (incentiveMatch) guess.incentive = toNumber(incentiveMatch[1]);
+
+  const mileageMatch = bodyText.match(FINE_PRINT_PATTERNS.annualMileage);
+  if (mileageMatch) guess.annual_mileage = toNumber(mileageMatch[1]);
+
+  const termMatch = bodyText.match(FINE_PRINT_PATTERNS.termMonths);
+  if (termMatch) {
+    const months = parseInt(termMatch[1], 10);
+    if (months >= 12 && months <= 60) guess.term_months = months;
+  }
+
+  const moneyFactorMatch = bodyText.match(FINE_PRINT_PATTERNS.moneyFactor);
+  if (moneyFactorMatch) guess.money_factor = Number(moneyFactorMatch[1]);
+
+  // Residual as a dollar figure (purchase option at lease end) is preferred since that's
+  // what the form takes directly; only fall back to converting a stated % if that's all
+  // the page gives us, using whatever MSRP was found.
+  const residualDollarMatch = bodyText.match(FINE_PRINT_PATTERNS.residualPurchaseOption);
+  if (residualDollarMatch) {
+    guess.residual_value = toNumber(residualDollarMatch[1]);
+  } else {
+    const residualPercentMatch = bodyText.match(FINE_PRINT_PATTERNS.residualPercent);
+    if (residualPercentMatch && guess.msrp) {
+      guess.residual_value = Math.round(guess.msrp * (Number(residualPercentMatch[1]) / 100));
+    }
+  }
+
+  if (FINE_PRINT_PATTERNS.noSecurityDeposit.test(bodyText)) guess.security_deposit = 0;
 }
 
 function parseVehicleTitle(title) {

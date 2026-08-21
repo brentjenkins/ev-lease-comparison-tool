@@ -4,6 +4,7 @@ export interface EV {
   make: string;
   model: string;
   trim: string | null;
+  msrp: number | null;
   seats: number | null;
   range_miles: number | null;
   awd: boolean;
@@ -15,6 +16,16 @@ export interface EV {
 }
 
 export type EVInput = Omit<EV, 'id' | 'created_at'>;
+
+export interface Make {
+  id: number;
+  name: string;
+  acquisition_fee: number;
+  disposition_fee: number;
+  created_at: string;
+}
+
+export type MakeInput = Omit<Make, 'id' | 'created_at'>;
 
 export type TaxMethod = 'monthly' | 'upfront';
 
@@ -35,7 +46,6 @@ export interface Lease {
   money_factor: number | null;
 
   down_payment: number;
-  trade_in_equity: number;
   taxed_incentives: number;
   untaxed_incentives: number;
 
@@ -63,6 +73,7 @@ export interface LeaseMetrics {
   paymentWithTax: number;
   dueAtSigning: number;
   totalCustomerDown: number;
+  taxOnCcr: number;
   totalTaxesPaid: number;
   totalCost: number;
   totalCostByMonth: number[];
@@ -83,4 +94,14 @@ export interface ScrapeGuess {
   make: string | null;
   model: string | null;
   trim: string | null;
+  monthly_payment: number | null;
+  down_payment: number | null;
+  acquisition_fee: number | null;
+  incentive: number | null;
+  annual_mileage: number | null;
+  term_months: number | null;
+  residual_value: number | null;
+  money_factor: number | null;
+  security_deposit: number | null;
+  due_at_signing: number | null;
 }
