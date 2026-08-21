@@ -164,7 +164,8 @@ tr.clickable:hover {
   background: #f2f4fb;
 }
 
-.align-right {
+table.sortable-table th.align-right,
+table.sortable-table td.align-right {
   text-align: right;
 }
 
