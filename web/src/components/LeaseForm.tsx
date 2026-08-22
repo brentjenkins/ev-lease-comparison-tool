@@ -4,6 +4,7 @@ import type { EV, EVInput, Lease, LeaseInput, Make, ScrapeGuess, TaxMethod } fro
 import { ScrapePreview } from './ScrapePreview';
 import { DealPicker } from './DealPicker';
 import { EVForm, evLabel } from './EVForm';
+import { blockEnterSubmit } from '../lib/formGuards';
 
 interface Props {
   evs: EV[];
@@ -35,6 +36,7 @@ const emptyTerms = {
   dealer_incentives: null as number | null,
   untaxed_incentives: null as number | null,
   acquisition_fee: null as number | null,
+  destination_fee: null as number | null,
   // Fixed CA fees — same regardless of dealer, though dealers label them differently.
   registration_fee: 536 as number | null,
   doc_fee: 85 as number | null,
@@ -51,7 +53,7 @@ const emptyTerms = {
 
 const ZERO_DEFAULT_FIELDS = [
   'msrp', 'down_payment', 'manufacturer_incentives', 'dealer_incentives', 'untaxed_incentives',
-  'acquisition_fee', 'registration_fee', 'doc_fee', 'tire_fee', 'electronic_filing_fee',
+  'acquisition_fee', 'destination_fee', 'registration_fee', 'doc_fee', 'tire_fee', 'electronic_filing_fee',
   'disposition_fee', 'security_deposit', 'tax_rate_percent', 'monthly_payment',
 ] as const;
 
@@ -255,7 +257,7 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
     <div className="modal-backdrop" onClick={onCancel}>
       <div className="modal wide" onClick={(e) => e.stopPropagation()}>
         <h2>{initial ? 'Edit Lease' : 'Add Lease'}</h2>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} onKeyDown={blockEnterSubmit}>
           <section>
             <h3>1. Listing</h3>
             <div className="url-row">
@@ -434,6 +436,14 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
                 />
               </label>
               <label>
+                Destination and delivery fee ($)
+                <input
+                  type="number"
+                  value={terms.destination_fee ?? ''}
+                  onChange={(e) => setTerm('destination_fee', e.target.value === '' ? null : Number(e.target.value))}
+                />
+              </label>
+              <label>
                 Registration ($)
                 <input
                   type="number"
@@ -571,6 +581,7 @@ function extractTerms(lease: Lease): typeof emptyTerms {
     dealer_incentives: lease.dealer_incentives,
     untaxed_incentives: lease.untaxed_incentives,
     acquisition_fee: lease.acquisition_fee,
+    destination_fee: lease.destination_fee,
     registration_fee: lease.registration_fee,
     doc_fee: lease.doc_fee,
     tire_fee: lease.tire_fee,

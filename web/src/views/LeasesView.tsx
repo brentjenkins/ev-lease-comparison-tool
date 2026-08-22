@@ -86,13 +86,6 @@ export function LeasesView() {
 
   const columns: Column<Lease>[] = [
     { key: 'ev', label: 'Vehicle', accessor: (l) => (l.ev ? evLabel(l.ev) : `EV #${l.ev_id}`) },
-    {
-      key: 'score',
-      label: 'Score',
-      accessor: (l) => l.ev?.score ?? null,
-      align: 'right',
-      cellStyle: (l) => scoreGradient(l.ev?.score, scoreMin, scoreMax),
-    },
     { key: 'msrp', label: 'MSRP', accessor: (l) => l.msrp, render: (l) => money(l.msrp), align: 'right' },
     { key: 'term_months', label: 'Term', accessor: (l) => l.term_months, render: (l) => `${l.term_months} mo`, align: 'right' },
     {
@@ -124,12 +117,32 @@ export function LeasesView() {
       render: (l) => money(l.metrics.totalCost),
       align: 'right',
     },
+    // "How much car" — how good the vehicle itself is, independent of this specific deal.
+    {
+      key: 'score',
+      label: 'Score',
+      accessor: (l) => l.ev?.score ?? null,
+      align: 'right',
+      group: 'How much Car',
+      cellStyle: (l) => scoreGradient(l.ev?.score, scoreMin, scoreMax),
+    },
+    {
+      key: 'yearsToMsrp',
+      label: 'Yrs/MSRP',
+      accessor: (l) => l.metrics.yearsToMsrp,
+      render: (l) => years(l.metrics.yearsToMsrp),
+      align: 'right',
+      group: 'How much Car',
+      cellStyle: (l) => scoreGradient(l.metrics.yearsToMsrp, yrsMin, yrsMax),
+    },
+    // "Deal scores" — how good this specific lease offer is.
     {
       key: 'residualPercent',
       label: 'Residual %',
       accessor: (l) => l.metrics.residualPercent,
       render: (l) => (l.metrics.residualPercent == null ? '—' : `${l.metrics.residualPercent.toFixed(1)}%`),
       align: 'right',
+      group: 'Deal scores',
       cellStyle: (l) => scoreGradient(l.metrics.residualPercent, residualMin, residualMax),
     },
     {
@@ -138,16 +151,9 @@ export function LeasesView() {
       accessor: (l) => l.metrics.effectiveMonthlyCost,
       render: (l) => money(l.metrics.effectiveMonthlyCost),
       align: 'right',
+      group: 'Deal scores',
       // Lower effective cost is better, so the gradient is inverted.
       cellStyle: (l) => scoreGradient(l.metrics.effectiveMonthlyCost, effMin, effMax, true),
-    },
-    {
-      key: 'yearsToMsrp',
-      label: 'Yrs/MSRP',
-      accessor: (l) => l.metrics.yearsToMsrp,
-      render: (l) => years(l.metrics.yearsToMsrp),
-      align: 'right',
-      cellStyle: (l) => scoreGradient(l.metrics.yearsToMsrp, yrsMin, yrsMax),
     },
     {
       key: 'expires_at',

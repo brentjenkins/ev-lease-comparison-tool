@@ -56,6 +56,7 @@ export interface Lease {
   untaxed_incentives: number;
 
   acquisition_fee: number;
+  destination_fee: number;
   registration_fee: number;
   doc_fee: number;
   tire_fee: number;

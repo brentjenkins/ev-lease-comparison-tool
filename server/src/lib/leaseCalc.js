@@ -67,6 +67,7 @@ export function computeLeaseMetrics(lease) {
   const dueAtSigning =
     (lease.down_payment || 0) +
     (lease.acquisition_fee || 0) +
+    (lease.destination_fee || 0) +
     (lease.doc_fee || 0) +
     (lease.registration_fee || 0) +
     (lease.tire_fee || 0) +

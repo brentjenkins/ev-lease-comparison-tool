@@ -7,6 +7,10 @@ export interface Column<T> {
   render?: (row: T) => React.ReactNode;
   align?: 'left' | 'right';
   cellStyle?: (row: T) => React.CSSProperties | undefined;
+  // Columns sharing the same group render under one spanning header cell above their
+  // own labels (e.g. "How much Car" over Score + Yrs/MSRP). Only adjacent columns with
+  // the same group are merged, so keep grouped columns next to each other in the array.
+  group?: string;
 }
 
 interface Props<T> {
@@ -62,21 +66,60 @@ export function SortableTable<T>({
     return <div className="empty-state">{emptyMessage}</div>;
   }
 
+  const hasGroups = columns.some((c) => c.group);
+
+  function sortLabel(col: Column<T>) {
+    return (
+      <>
+        {col.label}
+        {sortKey === col.key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
+      </>
+    );
+  }
+
   return (
     <div className="table-wrap">
       <table className="sortable-table">
         <thead>
+          {hasGroups && (
+            <tr>
+              {columns.map((col, i) => {
+                if (col.group) {
+                  if (columns[i - 1]?.group === col.group) return null; // merged into the colSpan cell before it
+                  let span = 1;
+                  while (columns[i + span]?.group === col.group) span += 1;
+                  return (
+                    <th key={col.key} colSpan={span} className="group-header">
+                      {col.group}
+                    </th>
+                  );
+                }
+                return (
+                  <th
+                    key={col.key}
+                    rowSpan={2}
+                    className={col.align === 'right' ? 'align-right' : undefined}
+                    onClick={() => toggleSort(col.key)}
+                  >
+                    {sortLabel(col)}
+                  </th>
+                );
+              })}
+            </tr>
+          )}
           <tr>
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                className={col.align === 'right' ? 'align-right' : undefined}
-                onClick={() => toggleSort(col.key)}
-              >
-                {col.label}
-                {sortKey === col.key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
-              </th>
-            ))}
+            {columns.map((col) => {
+              if (hasGroups && !col.group) return null; // already rendered with rowSpan above
+              return (
+                <th
+                  key={col.key}
+                  className={col.align === 'right' ? 'align-right' : undefined}
+                  onClick={() => toggleSort(col.key)}
+                >
+                  {sortLabel(col)}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>

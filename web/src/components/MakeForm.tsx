@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { MakeInput } from '../types';
+import { blockEnterSubmit } from '../lib/formGuards';
 
 interface Props {
   initial?: Partial<MakeInput>;
@@ -44,7 +45,7 @@ export function MakeForm({ initial, onCancel, onSave, title }: Props) {
     <div className="modal-backdrop" onClick={onCancel}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <h2>{title}</h2>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} onKeyDown={blockEnterSubmit}>
           <div className="form-grid">
             <label className="span-2">
               Make

@@ -169,6 +169,17 @@ table.sortable-table td.align-right {
   text-align: right;
 }
 
+table.sortable-table th.group-header {
+  text-align: center;
+  cursor: default;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  background: #f5f7fc;
+  border-bottom: 1px solid var(--border);
+}
+
 .empty-state {
   padding: 40px;
   text-align: center;

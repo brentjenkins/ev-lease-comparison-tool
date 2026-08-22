@@ -8,7 +8,7 @@ export const leasesRouter = Router();
 const NUMERIC_FIELDS = [
   'msrp', 'selling_price', 'residual_value', 'money_factor', 'excess_mileage_fee',
   'down_payment', 'manufacturer_incentives', 'dealer_incentives', 'untaxed_incentives',
-  'acquisition_fee', 'registration_fee', 'doc_fee', 'tire_fee', 'electronic_filing_fee', 'disposition_fee', 'security_deposit',
+  'acquisition_fee', 'destination_fee', 'registration_fee', 'doc_fee', 'tire_fee', 'electronic_filing_fee', 'disposition_fee', 'security_deposit',
   'tax_rate_percent', 'monthly_payment',
 ];
 const INT_FIELDS = ['term_months', 'annual_mileage'];
@@ -52,13 +52,13 @@ leasesRouter.post('/', (req, res) => {
       ev_id, source_url, listing_title, image_url, dealer_name, expires_at, notes,
       msrp, selling_price, term_months, annual_mileage, excess_mileage_fee, residual_value, money_factor,
       down_payment, manufacturer_incentives, dealer_incentives, untaxed_incentives,
-      acquisition_fee, registration_fee, doc_fee, tire_fee, electronic_filing_fee, disposition_fee, security_deposit,
+      acquisition_fee, destination_fee, registration_fee, doc_fee, tire_fee, electronic_filing_fee, disposition_fee, security_deposit,
       tax_rate_percent, tax_method, monthly_payment
     ) VALUES (
       @ev_id, @source_url, @listing_title, @image_url, @dealer_name, @expires_at, @notes,
       @msrp, @selling_price, @term_months, @annual_mileage, @excess_mileage_fee, @residual_value, @money_factor,
       @down_payment, @manufacturer_incentives, @dealer_incentives, @untaxed_incentives,
-      @acquisition_fee, @registration_fee, @doc_fee, @tire_fee, @electronic_filing_fee, @disposition_fee, @security_deposit,
+      @acquisition_fee, @destination_fee, @registration_fee, @doc_fee, @tire_fee, @electronic_filing_fee, @disposition_fee, @security_deposit,
       @tax_rate_percent, @tax_method, @monthly_payment
     )
   `).run({ ...values, ev_id: body.ev_id });
@@ -79,7 +79,7 @@ leasesRouter.put('/:id', (req, res) => {
       msrp=@msrp, selling_price=@selling_price, term_months=@term_months, annual_mileage=@annual_mileage,
       excess_mileage_fee=@excess_mileage_fee, residual_value=@residual_value, money_factor=@money_factor,
       down_payment=@down_payment, manufacturer_incentives=@manufacturer_incentives, dealer_incentives=@dealer_incentives, untaxed_incentives=@untaxed_incentives,
-      acquisition_fee=@acquisition_fee, registration_fee=@registration_fee, doc_fee=@doc_fee, tire_fee=@tire_fee, electronic_filing_fee=@electronic_filing_fee, disposition_fee=@disposition_fee, security_deposit=@security_deposit,
+      acquisition_fee=@acquisition_fee, destination_fee=@destination_fee, registration_fee=@registration_fee, doc_fee=@doc_fee, tire_fee=@tire_fee, electronic_filing_fee=@electronic_filing_fee, disposition_fee=@disposition_fee, security_deposit=@security_deposit,
       tax_rate_percent=@tax_rate_percent, tax_method=@tax_method, monthly_payment=@monthly_payment
     WHERE id=@id
   `).run({ ...values, ev_id: merged.ev_id, id: req.params.id });

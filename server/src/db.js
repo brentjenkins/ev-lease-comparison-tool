@@ -54,6 +54,7 @@ db.exec(`
     untaxed_incentives REAL NOT NULL DEFAULT 0,
 
     acquisition_fee REAL NOT NULL DEFAULT 0,
+    destination_fee REAL NOT NULL DEFAULT 0,
     registration_fee REAL NOT NULL DEFAULT 0,
     doc_fee REAL NOT NULL DEFAULT 0,
     tire_fee REAL NOT NULL DEFAULT 0,
@@ -115,6 +116,9 @@ if (!existingLeaseColumns.has('dealer_incentives')) {
 }
 if (existingLeaseColumns.has('taxed_incentives')) {
   db.exec('ALTER TABLE leases DROP COLUMN taxed_incentives');
+}
+if (!existingLeaseColumns.has('destination_fee')) {
+  db.exec('ALTER TABLE leases ADD COLUMN destination_fee REAL NOT NULL DEFAULT 0');
 }
 
 // Manufacturer's baseline MSRP for the trim, distinct from a lease's own msrp
