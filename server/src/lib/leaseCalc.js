@@ -73,7 +73,8 @@ export function computeLeaseMetrics(lease) {
     (lease.electronic_filing_fee || 0) +
     (lease.security_deposit || 0) +
     taxOnCcr +
-    upfrontTax;
+    upfrontTax +
+    paymentWithTax;
 
   // Cash the customer puts toward the deal at signing, distinct from other
   // due-at-signing fees: down payment + acquisition fee + first month's payment.

@@ -255,6 +255,12 @@ textarea {
   background: white;
 }
 
+input:disabled {
+  background: #f0f1f5;
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
 .checkbox-row {
   display: flex;
   flex-wrap: wrap;

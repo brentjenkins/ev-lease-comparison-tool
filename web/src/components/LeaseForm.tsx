@@ -84,6 +84,8 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const selectedEv = useMemo(() => evs.find((e) => e.id === evId) ?? null, [evs, evId]);
+
   const suggestedEv = useMemo(() => {
     if (!guess || (!guess.year && !guess.make)) return null;
     return (
@@ -106,6 +108,26 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
     const rate = (terms.tax_rate_percent ?? 0) / 100;
     return ccr * rate;
   }, [terms.down_payment, terms.manufacturer_incentives, terms.dealer_incentives, terms.tax_rate_percent]);
+
+  // Mirrors leaseCalc.js's paymentWithTax/totalCustomerDown so the form shows the same
+  // figures the lease will be saved with, without a round trip to the server.
+  const paymentWithTax = useMemo(() => {
+    const basePayment = terms.monthly_payment ?? 0;
+    const rate = (terms.tax_rate_percent ?? 0) / 100;
+    const monthlyTax = terms.tax_method !== 'upfront' ? basePayment * rate : 0;
+    return basePayment + monthlyTax;
+  }, [terms.monthly_payment, terms.tax_rate_percent, terms.tax_method]);
+
+  const totalMoneyDown = useMemo(() => {
+    return (terms.down_payment ?? 0) + (terms.acquisition_fee ?? 0) + paymentWithTax;
+  }, [terms.down_payment, terms.acquisition_fee, paymentWithTax]);
+
+  // The first month's payment is due at signing (folded into totalMoneyDown above), so
+  // the remaining payments over the term are one fewer than term_months.
+  const totalPayments = useMemo(() => {
+    const remainingMonths = Math.max((terms.term_months ?? 0) - 1, 0);
+    return paymentWithTax * remainingMonths;
+  }, [paymentWithTax, terms.term_months]);
 
   function setTerm<K extends keyof typeof emptyTerms>(key: K, value: (typeof emptyTerms)[K]) {
     setTerms((t) => ({ ...t, [key]: value }));
@@ -277,6 +299,9 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
                     </option>
                   ))}
                 </select>
+                {selectedEv?.msrp != null && (
+                  <span className="computed-hint">Base MSRP: {money(selectedEv.msrp)}</span>
+                )}
               </label>
             </div>
             <button type="button" className="link" onClick={() => setShowCreateEV(true)}>
@@ -288,7 +313,7 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
             <h3>3. Cost &amp; program</h3>
             <div className="form-grid">
               <label>
-                MSRP ($)
+                As equipped MSRP ($)
                 <input type="number" value={terms.msrp ?? ''} onChange={(e) => setTerm('msrp', e.target.value === '' ? null : Number(e.target.value))} />
               </label>
               <label>
@@ -478,9 +503,22 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
                   <option value="upfront">Taxed upfront on selling price</option>
                 </select>
               </label>
-            </div>
-            <div className="computed-hint">
-              Tax on CCR (down payment + manufacturer/dealer incentives, taxed upfront at signing): {money(taxOnCcr)}
+              <label>
+                Tax on CCR (down payment + incentives, taxed upfront)
+                <input type="text" disabled value={money(taxOnCcr)} />
+              </label>
+              <label>
+                Total money down
+                <input type="text" disabled value={money(totalMoneyDown)} />
+              </label>
+              <label>
+                Monthly payment (with tax)
+                <input type="text" disabled value={`${money(paymentWithTax)}/mo`} />
+              </label>
+              <label>
+                Total payments (term, minus first payment)
+                <input type="text" disabled value={money(totalPayments)} />
+              </label>
             </div>
           </section>
 

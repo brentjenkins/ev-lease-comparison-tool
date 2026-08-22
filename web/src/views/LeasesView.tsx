@@ -82,6 +82,7 @@ export function LeasesView() {
   const [effMin, effMax] = numericRange(leases.map((l) => l.metrics.effectiveMonthlyCost));
   const [yrsMin, yrsMax] = numericRange(leases.map((l) => l.metrics.yearsToMsrp));
   const [scoreMin, scoreMax] = numericRange(leases.map((l) => l.ev?.score));
+  const [residualMin, residualMax] = numericRange(leases.map((l) => l.metrics.residualPercent));
 
   const columns: Column<Lease>[] = [
     { key: 'ev', label: 'Vehicle', accessor: (l) => (l.ev ? evLabel(l.ev) : `EV #${l.ev_id}`) },
@@ -93,7 +94,6 @@ export function LeasesView() {
       cellStyle: (l) => scoreGradient(l.ev?.score, scoreMin, scoreMax),
     },
     { key: 'msrp', label: 'MSRP', accessor: (l) => l.msrp, render: (l) => money(l.msrp), align: 'right' },
-    { key: 'selling_price', label: 'Sell price', accessor: (l) => l.selling_price, render: (l) => money(l.selling_price), align: 'right' },
     { key: 'term_months', label: 'Term', accessor: (l) => l.term_months, render: (l) => `${l.term_months} mo`, align: 'right' },
     {
       key: 'incentives',
@@ -118,18 +118,19 @@ export function LeasesView() {
       align: 'right',
     },
     {
-      key: 'excess_mileage_fee',
-      label: '$/mi over',
-      accessor: (l) => l.excess_mileage_fee,
-      render: (l) => (l.excess_mileage_fee == null ? '—' : `$${l.excess_mileage_fee.toFixed(2)}`),
-      align: 'right',
-    },
-    {
       key: 'totalCost',
       label: 'Total',
       accessor: (l) => l.metrics.totalCost,
       render: (l) => money(l.metrics.totalCost),
       align: 'right',
+    },
+    {
+      key: 'residualPercent',
+      label: 'Residual %',
+      accessor: (l) => l.metrics.residualPercent,
+      render: (l) => (l.metrics.residualPercent == null ? '—' : `${l.metrics.residualPercent.toFixed(1)}%`),
+      align: 'right',
+      cellStyle: (l) => scoreGradient(l.metrics.residualPercent, residualMin, residualMax),
     },
     {
       key: 'effectiveMonthlyCost',
