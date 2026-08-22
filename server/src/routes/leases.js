@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db.js';
 import { computeLeaseMetrics, suggestMonthlyPayment } from '../lib/leaseCalc.js';
+import { serializeEv } from '../lib/evScore.js';
 
 export const leasesRouter = Router();
 
@@ -16,16 +17,7 @@ function withEvAndMetrics(row) {
   const ev = db.prepare('SELECT * FROM evs WHERE id = ?').get(row.ev_id);
   return {
     ...row,
-    ev: ev
-      ? {
-          ...ev,
-          awd: !!ev.awd,
-          powered_liftgate: !!ev.powered_liftgate,
-          heated_seats: !!ev.heated_seats,
-          cooled_seats: !!ev.cooled_seats,
-          charging_800v: !!ev.charging_800v,
-        }
-      : null,
+    ev: serializeEv(ev),
     metrics: computeLeaseMetrics(row),
   };
 }
@@ -57,13 +49,13 @@ leasesRouter.post('/', (req, res) => {
   const values = normalize(body);
   const info = db.prepare(`
     INSERT INTO leases (
-      ev_id, source_url, listing_title, image_url, dealer_name, notes,
+      ev_id, source_url, listing_title, image_url, dealer_name, expires_at, notes,
       msrp, selling_price, term_months, annual_mileage, excess_mileage_fee, residual_value, money_factor,
       down_payment, manufacturer_incentives, dealer_incentives, untaxed_incentives,
       acquisition_fee, registration_fee, doc_fee, tire_fee, electronic_filing_fee, disposition_fee, security_deposit,
       tax_rate_percent, tax_method, monthly_payment
     ) VALUES (
-      @ev_id, @source_url, @listing_title, @image_url, @dealer_name, @notes,
+      @ev_id, @source_url, @listing_title, @image_url, @dealer_name, @expires_at, @notes,
       @msrp, @selling_price, @term_months, @annual_mileage, @excess_mileage_fee, @residual_value, @money_factor,
       @down_payment, @manufacturer_incentives, @dealer_incentives, @untaxed_incentives,
       @acquisition_fee, @registration_fee, @doc_fee, @tire_fee, @electronic_filing_fee, @disposition_fee, @security_deposit,
@@ -83,7 +75,7 @@ leasesRouter.put('/:id', (req, res) => {
   const values = normalize(merged);
   db.prepare(`
     UPDATE leases SET
-      ev_id=@ev_id, source_url=@source_url, listing_title=@listing_title, image_url=@image_url, dealer_name=@dealer_name, notes=@notes,
+      ev_id=@ev_id, source_url=@source_url, listing_title=@listing_title, image_url=@image_url, dealer_name=@dealer_name, expires_at=@expires_at, notes=@notes,
       msrp=@msrp, selling_price=@selling_price, term_months=@term_months, annual_mileage=@annual_mileage,
       excess_mileage_fee=@excess_mileage_fee, residual_value=@residual_value, money_factor=@money_factor,
       down_payment=@down_payment, manufacturer_incentives=@manufacturer_incentives, dealer_incentives=@dealer_incentives, untaxed_incentives=@untaxed_incentives,
@@ -107,6 +99,7 @@ function normalize(body) {
     listing_title: body.listing_title || null,
     image_url: body.image_url || null,
     dealer_name: body.dealer_name || null,
+    expires_at: body.expires_at || null,
     notes: body.notes || null,
     tax_method: body.tax_method === 'upfront' ? 'upfront' : 'monthly',
   };

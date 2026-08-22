@@ -4,6 +4,7 @@ import type { EV, Lease, Make } from '../types';
 import { SortableTable, type Column } from '../components/SortableTable';
 import { LeaseForm } from '../components/LeaseForm';
 import { evLabel } from '../components/EVForm';
+import { numericRange, scoreGradient } from '../lib/colorScale';
 
 const money = (n: number | null) => (n == null ? '—' : `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`);
 const years = (n: number | null) => (n == null ? '—' : `${n.toFixed(1)} yr`);
@@ -18,6 +19,22 @@ function dealerLabel(l: Lease): string | null {
   } catch {
     return null;
   }
+}
+
+// expires_at is stored as an ISO date (YYYY-MM-DD); build the local date from parts
+// rather than `new Date(iso)` so it doesn't shift a day in negative-UTC timezones.
+function formatExpiry(iso: string | null): string {
+  if (!iso) return '—';
+  const [y, m, d] = iso.split('-').map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function isExpired(iso: string | null): boolean {
+  if (!iso) return false;
+  const today = new Date();
+  const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  return iso < todayIso;
 }
 
 export function LeasesView() {
@@ -62,8 +79,19 @@ export function LeasesView() {
     await refresh();
   }
 
+  const [effMin, effMax] = numericRange(leases.map((l) => l.metrics.effectiveMonthlyCost));
+  const [yrsMin, yrsMax] = numericRange(leases.map((l) => l.metrics.yearsToMsrp));
+  const [scoreMin, scoreMax] = numericRange(leases.map((l) => l.ev?.score));
+
   const columns: Column<Lease>[] = [
     { key: 'ev', label: 'Vehicle', accessor: (l) => (l.ev ? evLabel(l.ev) : `EV #${l.ev_id}`) },
+    {
+      key: 'score',
+      label: 'Score',
+      accessor: (l) => l.ev?.score ?? null,
+      align: 'right',
+      cellStyle: (l) => scoreGradient(l.ev?.score, scoreMin, scoreMax),
+    },
     { key: 'msrp', label: 'MSRP', accessor: (l) => l.msrp, render: (l) => money(l.msrp), align: 'right' },
     { key: 'selling_price', label: 'Sell price', accessor: (l) => l.selling_price, render: (l) => money(l.selling_price), align: 'right' },
     { key: 'term_months', label: 'Term', accessor: (l) => l.term_months, render: (l) => `${l.term_months} mo`, align: 'right' },
@@ -109,6 +137,8 @@ export function LeasesView() {
       accessor: (l) => l.metrics.effectiveMonthlyCost,
       render: (l) => money(l.metrics.effectiveMonthlyCost),
       align: 'right',
+      // Lower effective cost is better, so the gradient is inverted.
+      cellStyle: (l) => scoreGradient(l.metrics.effectiveMonthlyCost, effMin, effMax, true),
     },
     {
       key: 'yearsToMsrp',
@@ -116,6 +146,13 @@ export function LeasesView() {
       accessor: (l) => l.metrics.yearsToMsrp,
       render: (l) => years(l.metrics.yearsToMsrp),
       align: 'right',
+      cellStyle: (l) => scoreGradient(l.metrics.yearsToMsrp, yrsMin, yrsMax),
+    },
+    {
+      key: 'expires_at',
+      label: 'Expires',
+      accessor: (l) => l.expires_at,
+      render: (l) => <span className={isExpired(l.expires_at) ? 'expired' : undefined}>{formatExpiry(l.expires_at)}</span>,
     },
     {
       key: 'actions',

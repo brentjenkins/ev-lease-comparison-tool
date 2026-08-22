@@ -74,6 +74,7 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
   const [listingTitle, setListingTitle] = useState(initial?.listing_title ?? '');
   const [imageUrl, setImageUrl] = useState(initial?.image_url ?? '');
   const [dealerName, setDealerName] = useState(initial?.dealer_name ?? '');
+  const [expiresAt, setExpiresAt] = useState(initial?.expires_at ?? '');
 
   const [evId, setEvId] = useState<number | ''>(initial?.ev_id ?? '');
   const [showCreateEV, setShowCreateEV] = useState(false);
@@ -132,6 +133,7 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
     setListingTitle(g.listing_title || '');
     setImageUrl(g.image_url || '');
     setDealerName(g.dealer_name || '');
+    setExpiresAt(g.expires_at || '');
     if (g.msrp) setTerm('msrp', g.msrp);
     else if (g.price) setTerm('msrp', g.price);
     // Deal terms pulled from the ad's fine print — best-effort, still editable below.
@@ -211,6 +213,7 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
         listing_title: listingTitle || null,
         image_url: imageUrl || null,
         dealer_name: dealerName || null,
+        expires_at: expiresAt || null,
         ...toPayload(terms),
       };
       if (initial) {
@@ -249,6 +252,10 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
               value={dealHint}
               onChange={(e) => setDealHint(e.target.value)}
             />
+            <label className="expires-label">
+              Offer expires
+              <input type="date" className="expires-input" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+            </label>
             {scrapeError && <div className="form-error">{scrapeError}</div>}
             {dealChoices && dealChoices.length > 1 && (
               <DealPicker deals={dealChoices} selected={guess} onPick={handlePickDeal} />
@@ -293,20 +300,20 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
                 />
               </label>
               <label>
-                Term (months)
-                <input
-                  type="number"
-                  value={terms.term_months ?? ''}
-                  onChange={(e) => setTerm('term_months', e.target.value === '' ? null : Number(e.target.value))}
-                />
-              </label>
-              <label>
                 Monthly payment ($, pre-tax)
                 <input
                   type="number"
                   step="0.01"
                   value={terms.monthly_payment ?? ''}
                   onChange={(e) => setTerm('monthly_payment', e.target.value === '' ? null : Number(e.target.value))}
+                />
+              </label>
+              <label>
+                Term (months)
+                <input
+                  type="number"
+                  value={terms.term_months ?? ''}
+                  onChange={(e) => setTerm('term_months', e.target.value === '' ? null : Number(e.target.value))}
                 />
               </label>
               <label>

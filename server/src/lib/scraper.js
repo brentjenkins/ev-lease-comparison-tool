@@ -43,6 +43,7 @@ const FINE_PRINT_PATTERNS = {
   moneyFactor: /money factor[^\d]{0,15}(0?\.\d{3,6})/i,
   noSecurityDeposit: /no security deposit/i,
   excessMileageFee: /\$(\.?\d+(?:\.\d+)?)\s*(?:per mile|\/\s?mile|\/\s?mi\b|a mile)/i,
+  expiresAt: /(?:offer\s+)?expires?\s*:?\s*(\d{1,2}\/\d{1,2}\/\d{2,4})/i,
 };
 
 function blankGuess(url) {
@@ -69,6 +70,7 @@ function blankGuess(url) {
     security_deposit: null,
     due_at_signing: null,
     excess_mileage_fee: null,
+    expires_at: null,
   };
 }
 
@@ -388,6 +390,9 @@ function extractFinePrintTerms(bodyText, guess) {
 
   const excessMileageMatch = bodyText.match(FINE_PRINT_PATTERNS.excessMileageFee);
   if (excessMileageMatch) guess.excess_mileage_fee = toNumber(excessMileageMatch[1]);
+
+  const expiresMatch = bodyText.match(FINE_PRINT_PATTERNS.expiresAt);
+  if (expiresMatch) guess.expires_at = toIsoDate(expiresMatch[1]);
 }
 
 function parseVehicleTitle(title) {
@@ -427,6 +432,16 @@ function pickString(val) {
 function toNumber(str) {
   const n = Number(String(str).replace(/[^0-9.]/g, ''));
   return Number.isFinite(n) ? n : null;
+}
+
+// Ad copy dates are always US-style M/D/YYYY (or 2-digit year); stored as ISO so the
+// lease form's <input type="date"> and the leases table can sort/compare it directly.
+function toIsoDate(mdy) {
+  const match = mdy.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (!match) return null;
+  const [, mm, dd, yearPart] = match;
+  const yyyy = yearPart.length === 2 ? `20${yearPart}` : yearPart;
+  return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
 }
 
 function resolveUrl(src, pageUrl) {

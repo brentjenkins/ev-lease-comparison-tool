@@ -1,18 +1,8 @@
 import { Router } from 'express';
 import { db } from '../db.js';
-import { computeEvScore } from '../lib/evScore.js';
+import { serializeEv as serialize } from '../lib/evScore.js';
 
 export const evsRouter = Router();
-
-const BOOL_FIELDS = ['awd', 'powered_liftgate', 'heated_seats', 'cooled_seats', 'charging_800v'];
-
-function serialize(row) {
-  if (!row) return row;
-  const out = { ...row };
-  for (const f of BOOL_FIELDS) out[f] = !!row[f];
-  out.score = computeEvScore(out);
-  return out;
-}
 
 evsRouter.get('/', (req, res) => {
   const rows = db.prepare('SELECT * FROM evs ORDER BY year DESC, make, model, trim').all();

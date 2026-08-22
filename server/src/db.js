@@ -36,6 +36,7 @@ db.exec(`
     listing_title TEXT,
     image_url TEXT,
     dealer_name TEXT,
+    expires_at TEXT,
     notes TEXT,
 
     msrp REAL NOT NULL DEFAULT 0,
@@ -95,6 +96,9 @@ if (!existingLeaseColumns.has('excess_mileage_fee')) {
 }
 if (!existingLeaseColumns.has('dealer_name')) {
   db.exec('ALTER TABLE leases ADD COLUMN dealer_name TEXT');
+}
+if (!existingLeaseColumns.has('expires_at')) {
+  db.exec('ALTER TABLE leases ADD COLUMN expires_at TEXT');
 }
 
 // Taxed incentives split by source (manufacturer lease cash vs. dealer discount) so

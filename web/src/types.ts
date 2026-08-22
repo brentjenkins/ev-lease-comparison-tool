@@ -38,6 +38,7 @@ export interface Lease {
   listing_title: string | null;
   image_url: string | null;
   dealer_name: string | null;
+  expires_at: string | null;
   notes: string | null;
 
   msrp: number;
@@ -111,6 +112,7 @@ export interface ScrapeGuess {
   security_deposit: number | null;
   due_at_signing: number | null;
   excess_mileage_fee: number | null;
+  expires_at: string | null;
 }
 
 export interface ScrapeResult {

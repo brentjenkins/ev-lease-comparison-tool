@@ -3,6 +3,7 @@ import { api } from '../api';
 import type { EV, EVInput } from '../types';
 import { SortableTable, type Column } from '../components/SortableTable';
 import { EVForm } from '../components/EVForm';
+import { numericRange, scoreGradient } from '../lib/colorScale';
 
 const YES = '✓';
 const NO = '';
@@ -50,6 +51,8 @@ export function EVsView() {
     await refresh();
   }
 
+  const [scoreMin, scoreMax] = numericRange(evs.map((e) => e.score));
+
   const columns: Column<EV>[] = [
     { key: 'year', label: 'Year', accessor: (e) => e.year },
     { key: 'make', label: 'Make', accessor: (e) => e.make },
@@ -83,7 +86,13 @@ export function EVsView() {
       accessor: (e) => (e.charging_800v ? 1 : 0),
       render: (e) => (e.charging_800v ? YES : NO),
     },
-    { key: 'score', label: 'Score', accessor: (e) => e.score, align: 'right' },
+    {
+      key: 'score',
+      label: 'Score',
+      accessor: (e) => e.score,
+      align: 'right',
+      cellStyle: (e) => scoreGradient(e.score, scoreMin, scoreMax),
+    },
     {
       key: 'actions',
       label: '',

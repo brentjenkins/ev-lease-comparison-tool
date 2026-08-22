@@ -6,6 +6,7 @@ export interface Column<T> {
   accessor: (row: T) => string | number | null;
   render?: (row: T) => React.ReactNode;
   align?: 'left' | 'right';
+  cellStyle?: (row: T) => React.CSSProperties | undefined;
 }
 
 interface Props<T> {
@@ -82,7 +83,11 @@ export function SortableTable<T>({
           {sorted.map((row) => (
             <tr key={rowKey(row)} onClick={() => onRowClick?.(row)} className={onRowClick ? 'clickable' : undefined}>
               {columns.map((col) => (
-                <td key={col.key} className={col.align === 'right' ? 'align-right' : undefined}>
+                <td
+                  key={col.key}
+                  className={col.align === 'right' ? 'align-right' : undefined}
+                  style={col.cellStyle?.(row)}
+                >
                   {col.render ? col.render(row) : col.accessor(row)}
                 </td>
               ))}

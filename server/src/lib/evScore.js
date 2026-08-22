@@ -1,3 +1,16 @@
+const BOOL_FIELDS = ['awd', 'powered_liftgate', 'heated_seats', 'cooled_seats', 'charging_800v'];
+
+// Normalizes a raw `evs` row (sqlite integers for booleans) and attaches the
+// computed score. Shared by both the EVs endpoints and leases' embedded ev,
+// so the score is never missing depending on which route you hit.
+export function serializeEv(row) {
+  if (!row) return null;
+  const out = { ...row };
+  for (const f of BOOL_FIELDS) out[f] = !!row[f];
+  out.score = computeEvScore(out);
+  return out;
+}
+
 // EV feature score — not persisted, recomputed on every read from current specs.
 export function computeEvScore(ev) {
   let score = 0;

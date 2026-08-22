@@ -274,6 +274,10 @@ label.checkbox input {
   width: auto;
 }
 
+.expired {
+  color: var(--danger);
+}
+
 .form-error {
   background: #fdecef;
   color: var(--danger);
@@ -302,6 +306,15 @@ label.checkbox input {
 .deal-hint-input {
   width: 100%;
   margin-top: 8px;
+}
+
+.expires-label {
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+
+.expires-input {
+  width: 180px;
 }
 
 .deal-picker {
