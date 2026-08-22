@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api';
 import type { EV, EVInput, Lease, LeaseInput, Make, ScrapeGuess, TaxMethod } from '../types';
 import { ScrapePreview } from './ScrapePreview';
+import { DealPicker } from './DealPicker';
 import { EVForm, evLabel } from './EVForm';
 
 interface Props {
@@ -30,7 +31,8 @@ const emptyTerms = {
   residual_value: null as number | null,
   money_factor: null as number | null,
   down_payment: null as number | null,
-  taxed_incentives: null as number | null,
+  manufacturer_incentives: null as number | null,
+  dealer_incentives: null as number | null,
   untaxed_incentives: null as number | null,
   acquisition_fee: null as number | null,
   // Fixed CA fees — same regardless of dealer, though dealers label them differently.
@@ -48,7 +50,7 @@ const emptyTerms = {
 };
 
 const ZERO_DEFAULT_FIELDS = [
-  'msrp', 'down_payment', 'taxed_incentives', 'untaxed_incentives',
+  'msrp', 'down_payment', 'manufacturer_incentives', 'dealer_incentives', 'untaxed_incentives',
   'acquisition_fee', 'registration_fee', 'doc_fee', 'tire_fee', 'electronic_filing_fee',
   'disposition_fee', 'security_deposit', 'tax_rate_percent', 'monthly_payment',
 ] as const;
@@ -62,11 +64,16 @@ function toPayload(terms: typeof emptyTerms) {
 
 export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated }: Props) {
   const [sourceUrl, setSourceUrl] = useState(initial?.source_url ?? '');
+  const [dealHint, setDealHint] = useState('');
   const [scraping, setScraping] = useState(false);
   const [scrapeError, setScrapeError] = useState<string | null>(null);
   const [guess, setGuess] = useState<ScrapeGuess | null>(null);
+  // Set when a scrape finds multiple deals on the page, so the user can pick which one
+  // applies. Cleared once a choice is made (or a fresh scrape resolves unambiguously).
+  const [dealChoices, setDealChoices] = useState<ScrapeGuess[] | null>(null);
   const [listingTitle, setListingTitle] = useState(initial?.listing_title ?? '');
   const [imageUrl, setImageUrl] = useState(initial?.image_url ?? '');
+  const [dealerName, setDealerName] = useState(initial?.dealer_name ?? '');
 
   const [evId, setEvId] = useState<number | ''>(initial?.ev_id ?? '');
   const [showCreateEV, setShowCreateEV] = useState(false);
@@ -94,10 +101,10 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
   }, [terms.residual_value, terms.msrp]);
 
   const taxOnCcr = useMemo(() => {
-    const ccr = (terms.down_payment ?? 0) + (terms.taxed_incentives ?? 0);
+    const ccr = (terms.down_payment ?? 0) + (terms.manufacturer_incentives ?? 0) + (terms.dealer_incentives ?? 0);
     const rate = (terms.tax_rate_percent ?? 0) / 100;
     return ccr * rate;
-  }, [terms.down_payment, terms.taxed_incentives, terms.tax_rate_percent]);
+  }, [terms.down_payment, terms.manufacturer_incentives, terms.dealer_incentives, terms.tax_rate_percent]);
 
   function setTerm<K extends keyof typeof emptyTerms>(key: K, value: (typeof emptyTerms)[K]) {
     setTerms((t) => ({ ...t, [key]: value }));
@@ -120,28 +127,49 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [evId]);
 
+  function applyGuess(g: ScrapeGuess) {
+    setGuess(g);
+    setListingTitle(g.listing_title || '');
+    setImageUrl(g.image_url || '');
+    setDealerName(g.dealer_name || '');
+    if (g.msrp) setTerm('msrp', g.msrp);
+    else if (g.price) setTerm('msrp', g.price);
+    // Deal terms pulled from the ad's fine print — best-effort, still editable below.
+    if (g.monthly_payment) setTerm('monthly_payment', g.monthly_payment);
+    if (g.down_payment) setTerm('down_payment', g.down_payment);
+    if (g.acquisition_fee) setTerm('acquisition_fee', g.acquisition_fee);
+    // Fine-print incentives are almost always the manufacturer's lease cash, not a
+    // dealer-specific discount — dealer incentives are rarely itemized in ad copy.
+    if (g.incentive) setTerm('manufacturer_incentives', g.incentive);
+    if (g.annual_mileage) setTerm('annual_mileage', g.annual_mileage);
+    if (g.excess_mileage_fee) setTerm('excess_mileage_fee', g.excess_mileage_fee);
+    if (g.term_months) setTerm('term_months', g.term_months);
+    if (g.residual_value) setTerm('residual_value', g.residual_value);
+    if (g.money_factor) setTerm('money_factor', g.money_factor);
+    if (g.security_deposit != null) setTerm('security_deposit', g.security_deposit);
+  }
+
+  function handlePickDeal(g: ScrapeGuess) {
+    applyGuess(g);
+    setDealChoices(null);
+  }
+
   async function handleScrape() {
     if (!sourceUrl.trim()) return;
     setScraping(true);
     setScrapeError(null);
+    setDealChoices(null);
     try {
-      const g = await api.scrape(sourceUrl.trim());
-      setGuess(g);
-      setListingTitle(g.listing_title || '');
-      setImageUrl(g.image_url || '');
-      if (g.msrp) setTerm('msrp', g.msrp);
-      else if (g.price) setTerm('msrp', g.price);
-      // Deal terms pulled from the ad's fine print — best-effort, still editable below.
-      if (g.monthly_payment) setTerm('monthly_payment', g.monthly_payment);
-      if (g.down_payment) setTerm('down_payment', g.down_payment);
-      if (g.acquisition_fee) setTerm('acquisition_fee', g.acquisition_fee);
-      if (g.incentive) setTerm('taxed_incentives', g.incentive);
-      if (g.annual_mileage) setTerm('annual_mileage', g.annual_mileage);
-      if (g.excess_mileage_fee) setTerm('excess_mileage_fee', g.excess_mileage_fee);
-      if (g.term_months) setTerm('term_months', g.term_months);
-      if (g.residual_value) setTerm('residual_value', g.residual_value);
-      if (g.money_factor) setTerm('money_factor', g.money_factor);
-      if (g.security_deposit != null) setTerm('security_deposit', g.security_deposit);
+      const { deals, matchedIndex } = await api.scrape(sourceUrl.trim(), dealHint.trim() || undefined);
+      if (deals.length > 1) {
+        // Multiple deals on the page. If the hint matched one confidently, apply it but
+        // still surface the full list in case the match is wrong; otherwise wait for a pick.
+        setDealChoices(deals);
+        if (matchedIndex != null) applyGuess(deals[matchedIndex]);
+        else setGuess(null);
+      } else {
+        applyGuess(deals[0]);
+      }
     } catch (err) {
       setScrapeError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -182,6 +210,7 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
         source_url: sourceUrl || null,
         listing_title: listingTitle || null,
         image_url: imageUrl || null,
+        dealer_name: dealerName || null,
         ...toPayload(terms),
       };
       if (initial) {
@@ -214,7 +243,16 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
                 {scraping ? 'Scraping…' : 'Scrape'}
               </button>
             </div>
+            <input
+              className="deal-hint-input"
+              placeholder="Deal (optional) — e.g. 2026 Ioniq 9 SEL AWD, for pages listing several deals"
+              value={dealHint}
+              onChange={(e) => setDealHint(e.target.value)}
+            />
             {scrapeError && <div className="form-error">{scrapeError}</div>}
+            {dealChoices && dealChoices.length > 1 && (
+              <DealPicker deals={dealChoices} selected={guess} onPick={handlePickDeal} />
+            )}
             {guess && <ScrapePreview guess={guess} />}
           </section>
 
@@ -263,6 +301,15 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
                 />
               </label>
               <label>
+                Monthly payment ($, pre-tax)
+                <input
+                  type="number"
+                  step="0.01"
+                  value={terms.monthly_payment ?? ''}
+                  onChange={(e) => setTerm('monthly_payment', e.target.value === '' ? null : Number(e.target.value))}
+                />
+              </label>
+              <label>
                 Annual mileage
                 <input
                   type="number"
@@ -299,15 +346,6 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
                   onChange={(e) => setTerm('money_factor', e.target.value === '' ? null : Number(e.target.value))}
                 />
               </label>
-              <label>
-                Monthly payment ($, pre-tax)
-                <input
-                  type="number"
-                  step="0.01"
-                  value={terms.monthly_payment ?? ''}
-                  onChange={(e) => setTerm('monthly_payment', e.target.value === '' ? null : Number(e.target.value))}
-                />
-              </label>
             </div>
             <button type="button" className="link" onClick={handleSuggestPayment} disabled={suggesting}>
               {suggesting ? 'Calculating…' : 'Suggest payment from selling price / residual / MF'}
@@ -326,11 +364,19 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
                 />
               </label>
               <label>
-                Taxed incentives ($)
+                Manufacturer incentives ($)
                 <input
                   type="number"
-                  value={terms.taxed_incentives ?? ''}
-                  onChange={(e) => setTerm('taxed_incentives', e.target.value === '' ? null : Number(e.target.value))}
+                  value={terms.manufacturer_incentives ?? ''}
+                  onChange={(e) => setTerm('manufacturer_incentives', e.target.value === '' ? null : Number(e.target.value))}
+                />
+              </label>
+              <label>
+                Dealer incentives ($)
+                <input
+                  type="number"
+                  value={terms.dealer_incentives ?? ''}
+                  onChange={(e) => setTerm('dealer_incentives', e.target.value === '' ? null : Number(e.target.value))}
                 />
               </label>
               <label>
@@ -427,7 +473,7 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
               </label>
             </div>
             <div className="computed-hint">
-              Tax on CCR (down payment + taxed incentives, taxed upfront at signing): {money(taxOnCcr)}
+              Tax on CCR (down payment + manufacturer/dealer incentives, taxed upfront at signing): {money(taxOnCcr)}
             </div>
           </section>
 
@@ -476,7 +522,8 @@ function extractTerms(lease: Lease): typeof emptyTerms {
     residual_value: lease.residual_value,
     money_factor: lease.money_factor,
     down_payment: lease.down_payment,
-    taxed_incentives: lease.taxed_incentives,
+    manufacturer_incentives: lease.manufacturer_incentives,
+    dealer_incentives: lease.dealer_incentives,
     untaxed_incentives: lease.untaxed_incentives,
     acquisition_fee: lease.acquisition_fee,
     registration_fee: lease.registration_fee,

@@ -8,6 +8,18 @@ import { evLabel } from '../components/EVForm';
 const money = (n: number | null) => (n == null ? '—' : `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`);
 const years = (n: number | null) => (n == null ? '—' : `${n.toFixed(1)} yr`);
 
+// Leases scraped before dealer_name was captured (or entered by hand without it) fall
+// back to the bare hostname, so the link still reads as "who" rather than just "Listing".
+function dealerLabel(l: Lease): string | null {
+  if (l.dealer_name) return l.dealer_name;
+  if (!l.source_url) return null;
+  try {
+    return new URL(l.source_url).hostname.replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+}
+
 export function LeasesView() {
   const [leases, setLeases] = useState<Lease[]>([]);
   const [evs, setEvs] = useState<EV[]>([]);
@@ -58,8 +70,8 @@ export function LeasesView() {
     {
       key: 'incentives',
       label: 'Incentives',
-      accessor: (l) => l.taxed_incentives + l.untaxed_incentives,
-      render: (l) => money(l.taxed_incentives + l.untaxed_incentives),
+      accessor: (l) => l.manufacturer_incentives + l.dealer_incentives + l.untaxed_incentives,
+      render: (l) => money(l.manufacturer_incentives + l.dealer_incentives + l.untaxed_incentives),
       align: 'right',
     },
     { key: 'down_payment', label: 'Down', accessor: (l) => l.down_payment, render: (l) => money(l.down_payment), align: 'right' },
@@ -113,7 +125,7 @@ export function LeasesView() {
         <div className="row-actions">
           {l.source_url && (
             <a className="link" href={l.source_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
-              Listing
+              {dealerLabel(l) ?? 'Listing'}
             </a>
           )}
           <button

@@ -5,6 +5,7 @@ export function computeEvScore(ev) {
   if (ev.powered_liftgate) score += 5;
   if (ev.heated_seats) score += 5;
   if (ev.cooled_seats) score += 5;
+  if (ev.charging_800v) score += 5;
   if (ev.seats != null && ev.seats > 5) score += 5;
 
   if (ev.range_miles != null && ev.range_miles >= 300) {

@@ -299,6 +299,51 @@ label.checkbox input {
   flex: 1;
 }
 
+.deal-hint-input {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.deal-picker {
+  margin-top: 12px;
+}
+
+.deal-picker-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+button.deal-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  text-align: left;
+}
+
+button.deal-picker-item:hover {
+  border-color: var(--accent);
+}
+
+button.deal-picker-item.selected {
+  border-color: var(--accent);
+  background: #eef3fe;
+}
+
+.deal-picker-item img {
+  width: 40px;
+  height: 30px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.deal-picker-price {
+  color: var(--muted);
+}
+
 .scrape-preview {
   display: flex;
   gap: 14px;

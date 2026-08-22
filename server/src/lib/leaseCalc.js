@@ -17,7 +17,8 @@ export function suggestMonthlyPayment(lease) {
   const capitalizedFees = (lease.acquisition_fee || 0) + (lease.doc_fee || 0);
   const reductions =
     (lease.down_payment || 0) +
-    (lease.taxed_incentives || 0) +
+    (lease.manufacturer_incentives || 0) +
+    (lease.dealer_incentives || 0) +
     (lease.untaxed_incentives || 0);
 
   const adjustedCapCost = selling_price + capitalizedFees - reductions;
@@ -55,9 +56,10 @@ export function computeLeaseMetrics(lease) {
   const upfrontTax = isMonthlyTax ? 0 : (lease.selling_price || 0) * taxRate;
 
   // CA (and some other states) taxes the capitalized cost reduction — cash down
-  // plus any taxed incentives applied to reduce cap cost — upfront at signing,
-  // separately from however the recurring payment itself is taxed.
-  const capCostReduction = (lease.down_payment || 0) + (lease.taxed_incentives || 0);
+  // plus any taxed incentives (manufacturer or dealer) applied to reduce cap cost —
+  // upfront at signing, separately from however the recurring payment itself is taxed.
+  const capCostReduction =
+    (lease.down_payment || 0) + (lease.manufacturer_incentives || 0) + (lease.dealer_incentives || 0);
   const taxOnCcr = round2(capCostReduction * taxRate);
 
   const totalTaxesPaid = (isMonthlyTax ? monthlyTax * termMonths : upfrontTax) + taxOnCcr;

@@ -17,6 +17,12 @@ const PRICE_RE = /\$\s?[\d,]{4,7}(?:\.\d{2})?/;
 const MSRP_LABEL_RE = /MSRP[^$]{0,20}(\$\s?[\d,]{4,7})/i;
 const YEAR_RE = /\b(19|20)\d{2}\b/;
 
+// Deal-card titles are almost always in heading tags (h1-h6), which is also
+// standard markup for a11y on these pages. We don't try to match on div/span
+// "title" classes since those vary too much by dealer platform and risk
+// grabbing unrelated wrapper text.
+const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
+
 // Lease terms are frequently in an ad's fine-print disclaimer (dealer.com/DealerOn-style
 // specials pages commonly read like: "MSRP $42,145 - $14,079 due at lease signing including
 // $184 first monthly payment, $5,995 customer cash down, $650 acquisition fee, $7,250 Lease
@@ -39,21 +45,12 @@ const FINE_PRINT_PATTERNS = {
   excessMileageFee: /\$(\.?\d+(?:\.\d+)?)\s*(?:per mile|\/\s?mile|\/\s?mi\b|a mile)/i,
 };
 
-export async function scrapeListing(url) {
-  const res = await fetch(url, {
-    headers: { 'User-Agent': UA, Accept: 'text/html' },
-    redirect: 'follow',
-  });
-  if (!res.ok) {
-    throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
-  }
-  const html = await res.text();
-  const $ = cheerio.load(html);
-
-  const guess = {
+function blankGuess(url) {
+  return {
     source_url: url,
     listing_title: null,
     image_url: null,
+    dealer_name: null,
     price: null,
     msrp: null,
     year: null,
@@ -73,6 +70,217 @@ export async function scrapeListing(url) {
     due_at_signing: null,
     excess_mileage_fee: null,
   };
+}
+
+// Many specials pages (dealer.com, DealerOn, and similar dealer-site platforms) list several
+// vehicles' lease deals on one page. Scanning the whole page's text for "the" price/MSRP/fine
+// print grabs whichever deal happens to match first, which is wrong as soon as there's more
+// than one card. So: detect repeated deal-card structures first, and if there's more than
+// one, extract each separately and let the caller (via `dealHint`, or the UI showing a
+// picker) pick which one applies.
+export async function scrapeListing(url, dealHint) {
+  const res = await fetch(url, {
+    headers: { 'User-Agent': UA, Accept: 'text/html' },
+    redirect: 'follow',
+  });
+  if (!res.ok) {
+    throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
+  }
+  const html = await res.text();
+  const $ = cheerio.load(html);
+
+  const dealerName = extractDealerName($, url);
+  const cardEls = findDealCards($);
+
+  if (cardEls.length > 1) {
+    const deals = cardEls.map((el) => extractDealFromCard($, el, url));
+    deals.forEach((d) => { d.dealer_name = dealerName; });
+    return { deals, matchedIndex: matchDealHint(deals, dealHint) };
+  }
+
+  const guess = extractWholePage($, url);
+  guess.dealer_name = dealerName;
+  return { deals: [guess], matchedIndex: 0 };
+}
+
+// The dealer's own name (for showing "Fremont Hyundai" instead of a raw URL as the
+// listing link). Dealer sites commonly publish a schema.org AutoDealer/LocalBusiness
+// node for local SEO — that's the most reliable source when present; otherwise fall
+// back to a site-name meta tag, and finally to the bare hostname.
+const DEALER_SCHEMA_TYPES = ['autodealer', 'automotivebusiness', 'localbusiness', 'organization', 'corporation'];
+
+function extractDealerName($, url) {
+  let name = null;
+
+  $('script[type="application/ld+json"]').each((_, el) => {
+    if (name) return;
+    let parsed;
+    try {
+      parsed = JSON.parse($(el).contents().text());
+    } catch {
+      return;
+    }
+    const candidates = Array.isArray(parsed) ? parsed : [parsed, ...(parsed['@graph'] || [])];
+    for (const node of candidates) {
+      if (!node || typeof node !== 'object') continue;
+      const type = String(node['@type'] || '').toLowerCase();
+      if (DEALER_SCHEMA_TYPES.includes(type) && node.name) {
+        name = pickString(node.name);
+        break;
+      }
+    }
+  });
+
+  if (!name) {
+    name = pickString($('meta[property="og:site_name"]').attr('content'));
+  }
+
+  if (!name) {
+    try {
+      name = new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+      name = null;
+    }
+  }
+
+  return name;
+}
+
+// Finds distinct "deal card" container elements by locating headings that look like a
+// vehicle title (a year plus a known make) and, for each, walking up the DOM until the
+// ancestor would start covering more than one such heading — i.e. the smallest ancestor
+// that wraps exactly this one card.
+function findDealCards($) {
+  const headings = [];
+  $(HEADING_SELECTOR).each((_, el) => {
+    if (looksLikeVehicleHeading($(el).text())) headings.push(el);
+  });
+  if (headings.length < 2) return [];
+
+  const seen = new Set();
+  const containers = [];
+  for (const heading of headings) {
+    const container = findCardContainer($, heading);
+    if (!seen.has(container)) {
+      seen.add(container);
+      containers.push(container);
+    }
+  }
+  // If multiple headings collapsed onto the same container, we couldn't actually tell
+  // the cards apart — fall back to whole-page extraction rather than guessing.
+  return containers.length > 1 ? containers : [];
+}
+
+function looksLikeVehicleHeading(text) {
+  const clean = text.replace(/\s+/g, ' ').trim();
+  if (!YEAR_RE.test(clean)) return false;
+  const lower = clean.toLowerCase();
+  return KNOWN_MAKES.some((m) => lower.includes(m.toLowerCase()));
+}
+
+function countVehicleHeadingsWithin($, el) {
+  let count = 0;
+  $(el)
+    .find(HEADING_SELECTOR)
+    .each((_, h) => {
+      if (looksLikeVehicleHeading($(h).text())) count += 1;
+    });
+  return count;
+}
+
+function findCardContainer($, headingEl) {
+  let candidate = headingEl;
+  let parent = $(headingEl).parent();
+  while (parent.length && !parent.is('body')) {
+    const parentEl = parent.get(0);
+    if (countVehicleHeadingsWithin($, parentEl) > 1) break;
+    candidate = parentEl;
+    parent = parent.parent();
+  }
+  return candidate;
+}
+
+function extractDealFromCard($, cardEl, url) {
+  const $card = $(cardEl);
+  const guess = blankGuess(url);
+
+  const heading = $card
+    .find(HEADING_SELECTOR)
+    .filter((_, el) => looksLikeVehicleHeading($(el).text()))
+    .first();
+  guess.listing_title = heading.text().replace(/\s+/g, ' ').trim() || null;
+
+  const img = $card.find('img').first();
+  guess.image_url = resolveUrl(img.attr('src') || img.attr('data-src') || img.attr('data-lazy-src'), url);
+
+  const cardText = $card.text().replace(/\s+/g, ' ').trim();
+  const msrpMatch = cardText.match(MSRP_LABEL_RE);
+  if (msrpMatch) guess.msrp = toNumber(msrpMatch[1]);
+  const priceMatch = cardText.match(PRICE_RE);
+  if (priceMatch) guess.price = toNumber(priceMatch[0]);
+
+  extractFinePrintTerms(cardText, guess);
+
+  if (guess.listing_title) {
+    const parsedTitle = parseVehicleTitle(guess.listing_title);
+    guess.year = parsedTitle.year;
+    guess.make = parsedTitle.make;
+    guess.model = parsedTitle.model;
+    guess.trim = parsedTitle.trim;
+  }
+  if (guess.year) guess.year = parseInt(String(guess.year).match(YEAR_RE)?.[0] || guess.year, 10) || null;
+
+  return guess;
+}
+
+// Scores how well a user-supplied hint (e.g. "Ioniq 9 SEL" or a full pasted title) matches
+// a detected deal's title: exact substring either direction wins outright, otherwise it's
+// the fraction of the hint's words found in the title. Only returns an index when there's a
+// confident, unambiguous winner — otherwise the caller should let the user pick.
+function matchDealHint(deals, hint) {
+  if (!hint || !hint.trim()) return null;
+
+  let bestIndex = null;
+  let bestScore = 0;
+  let tied = false;
+
+  deals.forEach((deal, i) => {
+    const score = scoreTitleMatch(hint, deal.listing_title || '');
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = i;
+      tied = false;
+    } else if (score === bestScore && score > 0) {
+      tied = true;
+    }
+  });
+
+  if (bestIndex !== null && bestScore >= 0.5 && !tied) return bestIndex;
+  return null;
+}
+
+function scoreTitleMatch(hint, title) {
+  const nHint = normalizeForMatch(hint);
+  const nTitle = normalizeForMatch(title);
+  if (!nHint || !nTitle) return 0;
+  if (nTitle.includes(nHint) || nHint.includes(nTitle)) return 1;
+
+  const hintTokens = nHint.split(' ').filter(Boolean);
+  if (hintTokens.length === 0) return 0;
+  const titleTokens = new Set(nTitle.split(' ').filter(Boolean));
+  const matched = hintTokens.filter((t) => titleTokens.has(t)).length;
+  return matched / hintTokens.length;
+}
+
+function normalizeForMatch(s) {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function extractWholePage($, url) {
+  const guess = blankGuess(url);
 
   // 1. JSON-LD structured data (schema.org Vehicle / Product / Car)
   $('script[type="application/ld+json"]').each((_, el) => {
@@ -91,7 +299,7 @@ export async function scrapeListing(url) {
       guess.make = guess.make || pickString(node.brand?.name || node.brand || node.manufacturer);
       guess.model = guess.model || pickString(node.model);
       guess.year = guess.year || pickString(node.vehicleModelDate || node.productionDate);
-      guess.image_url = guess.image_url || pickString(node.image);
+      guess.image_url = guess.image_url || resolveUrl(pickString(node.image), url);
       guess.listing_title = guess.listing_title || pickString(node.name);
       const offerPrice = node.offers?.price ?? node.offers?.[0]?.price;
       if (offerPrice) guess.price = guess.price || Number(String(offerPrice).replace(/[^0-9.]/g, ''));
@@ -101,7 +309,7 @@ export async function scrapeListing(url) {
   // 2. Open Graph fallbacks
   guess.listing_title =
     guess.listing_title || $('meta[property="og:title"]').attr('content') || $('title').first().text().trim() || null;
-  guess.image_url = guess.image_url || $('meta[property="og:image"]').attr('content') || null;
+  guess.image_url = guess.image_url || resolveUrl($('meta[property="og:image"]').attr('content'), url);
   const ogPrice = $('meta[property="og:price:amount"]').attr('content') || $('meta[property="product:price:amount"]').attr('content');
   if (ogPrice) guess.price = guess.price || Number(ogPrice);
 
@@ -219,4 +427,13 @@ function pickString(val) {
 function toNumber(str) {
   const n = Number(String(str).replace(/[^0-9.]/g, ''));
   return Number.isFinite(n) ? n : null;
+}
+
+function resolveUrl(src, pageUrl) {
+  if (!src) return null;
+  try {
+    return new URL(src, pageUrl).href;
+  } catch {
+    return src;
+  }
 }

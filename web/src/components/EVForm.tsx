@@ -20,6 +20,7 @@ const empty: EVInput = {
   powered_liftgate: false,
   heated_seats: false,
   cooled_seats: false,
+  charging_800v: false,
   notes: '',
 };
 
@@ -125,6 +126,14 @@ export function EVForm({ initial, onCancel, onSave, title }: Props) {
                 onChange={(e) => set('cooled_seats', e.target.checked)}
               />
               Cooled seats
+            </label>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={form.charging_800v}
+                onChange={(e) => set('charging_800v', e.target.checked)}
+              />
+              800V charging
             </label>
           </div>
 

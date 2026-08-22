@@ -11,6 +11,7 @@ export interface EV {
   powered_liftgate: boolean;
   heated_seats: boolean;
   cooled_seats: boolean;
+  charging_800v: boolean;
   notes: string | null;
   created_at: string;
   score: number;
@@ -36,6 +37,7 @@ export interface Lease {
   source_url: string | null;
   listing_title: string | null;
   image_url: string | null;
+  dealer_name: string | null;
   notes: string | null;
 
   msrp: number;
@@ -48,7 +50,8 @@ export interface Lease {
   money_factor: number | null;
 
   down_payment: number;
-  taxed_incentives: number;
+  manufacturer_incentives: number;
+  dealer_incentives: number;
   untaxed_incentives: number;
 
   acquisition_fee: number;
@@ -90,6 +93,7 @@ export interface ScrapeGuess {
   source_url: string;
   listing_title: string | null;
   image_url: string | null;
+  dealer_name: string | null;
   price: number | null;
   msrp: number | null;
   year: number | null;
@@ -107,4 +111,12 @@ export interface ScrapeGuess {
   security_deposit: number | null;
   due_at_signing: number | null;
   excess_mileage_fee: number | null;
+}
+
+export interface ScrapeResult {
+  deals: ScrapeGuess[];
+  // Index into `deals` that confidently matched the supplied deal hint, or null if no
+  // hint was given, or the page has multiple deals and none matched confidently — in
+  // either of those last two cases the caller should let the user pick.
+  matchedIndex: number | null;
 }

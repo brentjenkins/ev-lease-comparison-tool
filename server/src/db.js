@@ -24,6 +24,7 @@ db.exec(`
     powered_liftgate INTEGER NOT NULL DEFAULT 0,
     heated_seats INTEGER NOT NULL DEFAULT 0,
     cooled_seats INTEGER NOT NULL DEFAULT 0,
+    charging_800v INTEGER NOT NULL DEFAULT 0,
     notes TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
@@ -34,6 +35,7 @@ db.exec(`
     source_url TEXT,
     listing_title TEXT,
     image_url TEXT,
+    dealer_name TEXT,
     notes TEXT,
 
     msrp REAL NOT NULL DEFAULT 0,
@@ -46,7 +48,8 @@ db.exec(`
     money_factor REAL,
 
     down_payment REAL NOT NULL DEFAULT 0,
-    taxed_incentives REAL NOT NULL DEFAULT 0,
+    manufacturer_incentives REAL NOT NULL DEFAULT 0,
+    dealer_incentives REAL NOT NULL DEFAULT 0,
     untaxed_incentives REAL NOT NULL DEFAULT 0,
 
     acquisition_fee REAL NOT NULL DEFAULT 0,
@@ -90,12 +93,34 @@ for (const col of ['dealer_fees', 'government_fees', 'trade_in_equity']) {
 if (!existingLeaseColumns.has('excess_mileage_fee')) {
   db.exec('ALTER TABLE leases ADD COLUMN excess_mileage_fee REAL');
 }
+if (!existingLeaseColumns.has('dealer_name')) {
+  db.exec('ALTER TABLE leases ADD COLUMN dealer_name TEXT');
+}
+
+// Taxed incentives split by source (manufacturer lease cash vs. dealer discount) so
+// they can be tracked separately — both are still taxed the same way, so anywhere the
+// old single field fed the tax math now sums the two.
+if (!existingLeaseColumns.has('manufacturer_incentives')) {
+  db.exec('ALTER TABLE leases ADD COLUMN manufacturer_incentives REAL NOT NULL DEFAULT 0');
+  if (existingLeaseColumns.has('taxed_incentives')) {
+    db.exec('UPDATE leases SET manufacturer_incentives = taxed_incentives');
+  }
+}
+if (!existingLeaseColumns.has('dealer_incentives')) {
+  db.exec('ALTER TABLE leases ADD COLUMN dealer_incentives REAL NOT NULL DEFAULT 0');
+}
+if (existingLeaseColumns.has('taxed_incentives')) {
+  db.exec('ALTER TABLE leases DROP COLUMN taxed_incentives');
+}
 
 // Manufacturer's baseline MSRP for the trim, distinct from a lease's own msrp
 // (which reflects the specific listing/build, options included).
 const existingEvColumns = new Set(db.prepare('PRAGMA table_info(evs)').all().map((c) => c.name));
 if (!existingEvColumns.has('msrp')) {
   db.exec('ALTER TABLE evs ADD COLUMN msrp REAL');
+}
+if (!existingEvColumns.has('charging_800v')) {
+  db.exec('ALTER TABLE evs ADD COLUMN charging_800v INTEGER NOT NULL DEFAULT 0');
 }
 
 // Seed the captive-finance acquisition/disposition fee schedule from LeaseHackr's

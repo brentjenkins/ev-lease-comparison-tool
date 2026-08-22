@@ -77,6 +77,12 @@ export function EVsView() {
       accessor: (e) => (e.cooled_seats ? 1 : 0),
       render: (e) => (e.cooled_seats ? YES : NO),
     },
+    {
+      key: 'charging_800v',
+      label: '800V',
+      accessor: (e) => (e.charging_800v ? 1 : 0),
+      render: (e) => (e.charging_800v ? YES : NO),
+    },
     { key: 'score', label: 'Score', accessor: (e) => e.score, align: 'right' },
     {
       key: 'actions',

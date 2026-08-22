@@ -4,7 +4,7 @@ import { computeEvScore } from '../lib/evScore.js';
 
 export const evsRouter = Router();
 
-const BOOL_FIELDS = ['awd', 'powered_liftgate', 'heated_seats', 'cooled_seats'];
+const BOOL_FIELDS = ['awd', 'powered_liftgate', 'heated_seats', 'cooled_seats', 'charging_800v'];
 
 function serialize(row) {
   if (!row) return row;
@@ -32,8 +32,8 @@ evsRouter.post('/', (req, res) => {
   }
   const values = buildValues(body);
   const stmt = db.prepare(`
-    INSERT INTO evs (year, make, model, trim, msrp, seats, range_miles, awd, powered_liftgate, heated_seats, cooled_seats, notes)
-    VALUES (@year, @make, @model, @trim, @msrp, @seats, @range_miles, @awd, @powered_liftgate, @heated_seats, @cooled_seats, @notes)
+    INSERT INTO evs (year, make, model, trim, msrp, seats, range_miles, awd, powered_liftgate, heated_seats, cooled_seats, charging_800v, notes)
+    VALUES (@year, @make, @model, @trim, @msrp, @seats, @range_miles, @awd, @powered_liftgate, @heated_seats, @cooled_seats, @charging_800v, @notes)
   `);
   const info = stmt.run(values);
   const row = db.prepare('SELECT * FROM evs WHERE id = ?').get(info.lastInsertRowid);
@@ -49,7 +49,7 @@ evsRouter.put('/:id', (req, res) => {
   db.prepare(`
     UPDATE evs SET year=@year, make=@make, model=@model, trim=@trim, msrp=@msrp, seats=@seats,
       range_miles=@range_miles, awd=@awd, powered_liftgate=@powered_liftgate,
-      heated_seats=@heated_seats, cooled_seats=@cooled_seats, notes=@notes
+      heated_seats=@heated_seats, cooled_seats=@cooled_seats, charging_800v=@charging_800v, notes=@notes
     WHERE id=@id
   `).run({ ...values, id: req.params.id });
 
@@ -75,6 +75,7 @@ function buildValues(body) {
     powered_liftgate: body.powered_liftgate ? 1 : 0,
     heated_seats: body.heated_seats ? 1 : 0,
     cooled_seats: body.cooled_seats ? 1 : 0,
+    charging_800v: body.charging_800v ? 1 : 0,
     notes: body.notes || null,
   };
 }
