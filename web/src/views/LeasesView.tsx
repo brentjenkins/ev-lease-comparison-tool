@@ -78,6 +78,13 @@ export function LeasesView() {
       align: 'right',
     },
     {
+      key: 'excess_mileage_fee',
+      label: '$/mi over',
+      accessor: (l) => l.excess_mileage_fee,
+      render: (l) => (l.excess_mileage_fee == null ? '—' : `$${l.excess_mileage_fee.toFixed(2)}`),
+      align: 'right',
+    },
+    {
       key: 'totalCost',
       label: 'Total',
       accessor: (l) => l.metrics.totalCost,

@@ -15,6 +15,7 @@ export function ScrapePreview({ guess }: { guess: ScrapeGuess }) {
   if (guess.money_factor) dealTerms.push(`MF ${guess.money_factor}`);
   if (guess.security_deposit === 0) dealTerms.push('no security deposit');
   if (guess.due_at_signing) dealTerms.push(`$${guess.due_at_signing.toLocaleString()} due at signing`);
+  if (guess.excess_mileage_fee) dealTerms.push(`$${guess.excess_mileage_fee.toFixed(2)}/mi over limit`);
 
   return (
     <div className="scrape-preview">

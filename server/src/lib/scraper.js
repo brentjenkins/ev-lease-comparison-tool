@@ -36,6 +36,7 @@ const FINE_PRINT_PATTERNS = {
   residualPercent: /residual[^\d%]{0,20}(\d{2,3})\s?%/i,
   moneyFactor: /money factor[^\d]{0,15}(0?\.\d{3,6})/i,
   noSecurityDeposit: /no security deposit/i,
+  excessMileageFee: /\$(\.?\d+(?:\.\d+)?)\s*(?:per mile|\/\s?mile|\/\s?mi\b|a mile)/i,
 };
 
 export async function scrapeListing(url) {
@@ -70,6 +71,7 @@ export async function scrapeListing(url) {
     money_factor: null,
     security_deposit: null,
     due_at_signing: null,
+    excess_mileage_fee: null,
   };
 
   // 1. JSON-LD structured data (schema.org Vehicle / Product / Car)
@@ -175,6 +177,9 @@ function extractFinePrintTerms(bodyText, guess) {
   }
 
   if (FINE_PRINT_PATTERNS.noSecurityDeposit.test(bodyText)) guess.security_deposit = 0;
+
+  const excessMileageMatch = bodyText.match(FINE_PRINT_PATTERNS.excessMileageFee);
+  if (excessMileageMatch) guess.excess_mileage_fee = toNumber(excessMileageMatch[1]);
 }
 
 function parseVehicleTitle(title) {

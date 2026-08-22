@@ -41,6 +41,7 @@ db.exec(`
 
     term_months INTEGER NOT NULL DEFAULT 36,
     annual_mileage INTEGER,
+    excess_mileage_fee REAL,
     residual_value REAL,
     money_factor REAL,
 
@@ -85,6 +86,9 @@ for (const col of ['dealer_fees', 'government_fees', 'trade_in_equity']) {
   if (existingLeaseColumns.has(col)) {
     db.exec(`ALTER TABLE leases DROP COLUMN ${col}`);
   }
+}
+if (!existingLeaseColumns.has('excess_mileage_fee')) {
+  db.exec('ALTER TABLE leases ADD COLUMN excess_mileage_fee REAL');
 }
 
 // Manufacturer's baseline MSRP for the trim, distinct from a lease's own msrp

@@ -25,6 +25,8 @@ const emptyTerms = {
   selling_price: null as number | null,
   term_months: 36 as number | null,
   annual_mileage: 10000 as number | null,
+  // $0.20/mile is the typical excess-mileage rate, though it varies by deal.
+  excess_mileage_fee: 0.2 as number | null,
   residual_value: null as number | null,
   money_factor: null as number | null,
   down_payment: null as number | null,
@@ -135,6 +137,7 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
       if (g.acquisition_fee) setTerm('acquisition_fee', g.acquisition_fee);
       if (g.incentive) setTerm('taxed_incentives', g.incentive);
       if (g.annual_mileage) setTerm('annual_mileage', g.annual_mileage);
+      if (g.excess_mileage_fee) setTerm('excess_mileage_fee', g.excess_mileage_fee);
       if (g.term_months) setTerm('term_months', g.term_months);
       if (g.residual_value) setTerm('residual_value', g.residual_value);
       if (g.money_factor) setTerm('money_factor', g.money_factor);
@@ -265,6 +268,15 @@ export function LeaseForm({ evs, makes, initial, onCancel, onSaved, onEvCreated 
                   type="number"
                   value={terms.annual_mileage ?? ''}
                   onChange={(e) => setTerm('annual_mileage', e.target.value === '' ? null : Number(e.target.value))}
+                />
+              </label>
+              <label>
+                $/mile over limit
+                <input
+                  type="number"
+                  step="0.01"
+                  value={terms.excess_mileage_fee ?? ''}
+                  onChange={(e) => setTerm('excess_mileage_fee', e.target.value === '' ? null : Number(e.target.value))}
                 />
               </label>
               <label>
@@ -460,6 +472,7 @@ function extractTerms(lease: Lease): typeof emptyTerms {
     selling_price: lease.selling_price,
     term_months: lease.term_months,
     annual_mileage: lease.annual_mileage,
+    excess_mileage_fee: lease.excess_mileage_fee,
     residual_value: lease.residual_value,
     money_factor: lease.money_factor,
     down_payment: lease.down_payment,

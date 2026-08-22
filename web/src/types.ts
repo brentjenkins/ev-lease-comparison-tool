@@ -13,9 +13,10 @@ export interface EV {
   cooled_seats: boolean;
   notes: string | null;
   created_at: string;
+  score: number;
 }
 
-export type EVInput = Omit<EV, 'id' | 'created_at'>;
+export type EVInput = Omit<EV, 'id' | 'created_at' | 'score'>;
 
 export interface Make {
   id: number;
@@ -42,6 +43,7 @@ export interface Lease {
 
   term_months: number;
   annual_mileage: number | null;
+  excess_mileage_fee: number | null;
   residual_value: number | null;
   money_factor: number | null;
 
@@ -104,4 +106,5 @@ export interface ScrapeGuess {
   money_factor: number | null;
   security_deposit: number | null;
   due_at_signing: number | null;
+  excess_mileage_fee: number | null;
 }

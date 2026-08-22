@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { db } from '../db.js';
+import { computeEvScore } from '../lib/evScore.js';
 
 export const evsRouter = Router();
 
@@ -9,6 +10,7 @@ function serialize(row) {
   if (!row) return row;
   const out = { ...row };
   for (const f of BOOL_FIELDS) out[f] = !!row[f];
+  out.score = computeEvScore(out);
   return out;
 }
 

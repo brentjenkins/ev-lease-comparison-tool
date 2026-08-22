@@ -77,6 +77,7 @@ export function EVsView() {
       accessor: (e) => (e.cooled_seats ? 1 : 0),
       render: (e) => (e.cooled_seats ? YES : NO),
     },
+    { key: 'score', label: 'Score', accessor: (e) => e.score, align: 'right' },
     {
       key: 'actions',
       label: '',
